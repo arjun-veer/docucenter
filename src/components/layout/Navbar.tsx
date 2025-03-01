@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ChevronDown, User, LogOut } from 'lucide-react';
+import { Menu, X, ChevronDown, User, LogOut, Bell, Settings } from 'lucide-react';
 import { useAuth } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import {
@@ -101,6 +101,16 @@ export const Navbar = () => {
             </div>
             
             <div className="flex items-center gap-4">
+              {isAuthenticated && (
+                <Link 
+                  to="/notifications" 
+                  className="p-2 relative hover:bg-muted rounded-full transition-colors"
+                  aria-label="Notifications"
+                >
+                  <Bell className="h-5 w-5" />
+                </Link>
+              )}
+            
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -117,6 +127,18 @@ export const Navbar = () => {
                       <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer">
                         <User className="h-4 w-4" />
                         <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
+                        <User className="h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
+                        <Settings className="h-4 w-4" />
+                        <span>Settings</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -183,17 +205,52 @@ export const Navbar = () => {
                 Exams
               </Link>
               {isAuthenticated && (
-                <Link 
-                  to="/dashboard" 
-                  className={cn(
-                    "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                    location.pathname.includes("/dashboard") 
-                      ? "bg-primary/10 text-primary" 
-                      : "text-foreground hover:bg-muted"
-                  )}
-                >
-                  Dashboard
-                </Link>
+                <>
+                  <Link 
+                    to="/dashboard" 
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                      location.pathname.includes("/dashboard") 
+                        ? "bg-primary/10 text-primary" 
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link 
+                    to="/notifications" 
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                      location.pathname.includes("/notifications") 
+                        ? "bg-primary/10 text-primary" 
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    Notifications
+                  </Link>
+                  <Link 
+                    to="/profile" 
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                      location.pathname.includes("/profile") 
+                        ? "bg-primary/10 text-primary" 
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    Profile
+                  </Link>
+                  <Link 
+                    to="/settings" 
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                      location.pathname.includes("/settings") 
+                        ? "bg-primary/10 text-primary" 
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    Settings
+                  </Link>
+                </>
               )}
               
               <div className="border-t pt-4 mt-2">
