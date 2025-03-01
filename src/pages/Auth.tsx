@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AuthForm } from '@/components/auth/AuthForm';
@@ -9,6 +9,8 @@ import { useAuth } from '@/lib/store';
 const Auth = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode') || 'signin';
   
   // Redirect if already authenticated
   useEffect(() => {
@@ -41,7 +43,7 @@ const Auth = () => {
             Back to home
           </Link>
           
-          <AuthForm />
+          <AuthForm defaultMode={mode as 'signin' | 'signup'} />
         </div>
       </main>
       
