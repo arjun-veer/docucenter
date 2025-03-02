@@ -7,29 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Exam, ExamCategory } from "@/lib/types";
-import { useExams, useSettings } from "@/lib/store";
-import { Search, Filter, Calendar, Plus, Database, Sparkles } from "lucide-react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
+import { useExams, useSettings, useAuth } from "@/lib/store";
+import { Search, Filter, Calendar, Database, User } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Exams = () => {
-  const { exams, fetchExams, fetchExamsByPerplexity } = useExams();
-  const { perplexityApiKey } = useSettings();
+  const { exams, fetchExams } = useExams();
+  const { currentUser } = useAuth();
   const [filteredExams, setFilteredExams] = useState<Exam[]>(exams);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [isUpcoming, setIsUpcoming] = useState(true);
-  const [newExamQuery, setNewExamQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
 
   // All available categories from the exams
   const categories: ExamCategory[] = [
@@ -81,33 +69,9 @@ const Exams = () => {
     setFilteredExams(result);
   }, [exams, searchQuery, selectedCategory, isUpcoming]);
 
-  const handleSearchNewExam = async () => {
-    if (!perplexityApiKey) {
-      toast.error("Perplexity API key not configured. Please set it in Settings.");
-      return;
-    }
-
-    if (!newExamQuery.trim()) {
-      toast.error("Please enter an exam name to search");
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      const result = await fetchExamsByPerplexity(newExamQuery);
-      if (result) {
-        toast.success(`Found information about ${result.name}`);
-        setIsOpen(false);
-        setNewExamQuery("");
-      }
-    } catch (error) {
-      console.error("Error fetching exam data:", error);
-      toast.error("Failed to fetch exam data. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // We'll assume user with ID "admin-user" is admin for now
+  // In a real app, you'd have proper roles
+  const isAdmin = currentUser?.id === "admin-user";
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -119,56 +83,14 @@ const Exams = () => {
             <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
               <h1 className="text-3xl font-bold">Competitive Exams</h1>
               
-              <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Find New Exam
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Find Exam Information</DialogTitle>
-                    <DialogDescription>
-                      Enter the name of an exam to search for information using Perplexity AI.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      <p className="text-sm text-muted-foreground">
-                        AI-powered search will find details about any competitive exam
-                      </p>
-                    </div>
-                    
-                    <Input
-                      placeholder="e.g. NEET 2024, UPSC Civil Services"
-                      value={newExamQuery}
-                      onChange={(e) => setNewExamQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  {!perplexityApiKey && (
-                    <div className="text-sm bg-amber-100 text-amber-800 p-3 rounded-md">
-                      <p className="font-medium">Perplexity API key not configured</p>
-                      <p>Please set your API key in the Settings page before using this feature.</p>
-                    </div>
-                  )}
-                  
-                  <DialogFooter className="gap-2 mt-4">
-                    <Button variant="outline" onClick={() => setIsOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleSearchNewExam} 
-                      disabled={isLoading || !perplexityApiKey || !newExamQuery.trim()}
-                    >
-                      {isLoading ? "Searching..." : "Search"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              {isAdmin && (
+                <Button asChild className="gap-2">
+                  <Link to="/admin">
+                    <User className="h-4 w-4" />
+                    Admin Dashboard
+                  </Link>
+                </Button>
+              )}
             </div>
             <p className="text-muted-foreground">
               Discover and track competitive exams across various categories in India
@@ -241,39 +163,14 @@ const Exams = () => {
               <p className="text-muted-foreground mb-6">
                 Try adjusting your filters or search criteria
               </p>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Search for a New Exam
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Find Exam Information</DialogTitle>
-                    <DialogDescription>
-                      Enter the name of an exam to search for information using Perplexity AI.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="mt-4">
-                    <Input
-                      placeholder="e.g. NEET 2024, UPSC Civil Services"
-                      value={newExamQuery}
-                      onChange={(e) => setNewExamQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  <DialogFooter className="gap-2 mt-4">
-                    <Button variant="outline" onClick={() => setIsOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSearchNewExam} disabled={isLoading}>
-                      {isLoading ? "Searching..." : "Search"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              
+              {isAdmin && (
+                <Button asChild>
+                  <Link to="/admin">
+                    Go to Admin Dashboard to Add Exams
+                  </Link>
+                </Button>
+              )}
             </div>
           )}
         </div>

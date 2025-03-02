@@ -1,9 +1,8 @@
-
 import { create } from 'zustand';
 import { Exam, User, UserDocument } from './types';
 import { currentUser, mockExams, mockDocuments } from './mockData';
 import { supabase } from './supabase';
-import { fetchExamDataFromPerplexity, setPerplexityApiKey, getPerplexityApiKey, ExamDataResponse } from './perplexity';
+import { setPerplexityApiKey, getPerplexityApiKey } from './perplexity';
 import { toast } from 'sonner';
 
 interface AppState {
@@ -20,7 +19,6 @@ interface AppState {
   subscribeToExam: (examId: string) => void;
   unsubscribeFromExam: (examId: string) => void;
   fetchExams: () => Promise<void>;
-  fetchExamsByPerplexity: (examName: string) => Promise<Exam | null>;
   
   // Documents
   documents: UserDocument[];
@@ -186,85 +184,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
   
-  fetchExamsByPerplexity: async (examName: string): Promise<Exam | null> => {
-    // Check if we have API key
-    if (!getPerplexityApiKey()) {
-      toast.error('Perplexity API key not set. Please configure it in settings.');
-      return null;
-    }
-    
-    toast.loading('Fetching exam data from Perplexity AI...');
-    const examData = await fetchExamDataFromPerplexity(examName);
-    
-    if (!examData) {
-      toast.dismiss();
-      toast.error('Failed to fetch exam data');
-      return null;
-    }
-    
-    toast.dismiss();
-    toast.success('Exam data fetched successfully');
-    
-    // First save to Supabase if configured
-    let examId = `exam-${Math.random().toString(36).substr(2, 9)}`;
-    
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('exams')
-          .insert({
-            name: examData.name,
-            category: examData.category,
-            description: examData.description,
-            registration_start_date: examData.registrationStartDate,
-            registration_end_date: examData.registrationEndDate,
-            exam_date: examData.examDate || null,
-            result_date: examData.resultDate || null,
-            answer_key_date: examData.answerKeyDate || null,
-            website_url: examData.websiteUrl,
-            eligibility: examData.eligibility || null,
-            application_fee: examData.applicationFee || null,
-            is_verified: false, // Requires admin approval
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select('id')
-          .single();
-        
-        if (error) {
-          console.error('Error saving exam to Supabase:', error);
-        } else if (data) {
-          examId = data.id;
-        }
-      } catch (error) {
-        console.error('Error in saveExamToSupabase:', error);
-      }
-    }
-    
-    // Create new exam object
-    const newExam: Exam = {
-      id: examId,
-      name: examData.name,
-      category: examData.category as any,
-      registrationStartDate: new Date(examData.registrationStartDate),
-      registrationEndDate: new Date(examData.registrationEndDate),
-      examDate: examData.examDate ? new Date(examData.examDate) : undefined,
-      resultDate: examData.resultDate ? new Date(examData.resultDate) : undefined,
-      websiteUrl: examData.websiteUrl,
-      description: examData.description,
-      eligibility: examData.eligibility,
-      applicationFee: examData.applicationFee,
-      isSubscribed: false
-    };
-    
-    // Update state
-    set(state => ({
-      exams: [...state.exams, newExam]
-    }));
-    
-    return newExam;
-  },
-  
   // Documents
   documents: mockDocuments,
   
@@ -411,8 +330,7 @@ export const useExams = () => {
     subscribedExams, 
     subscribeToExam, 
     unsubscribeFromExam,
-    fetchExams,
-    fetchExamsByPerplexity
+    fetchExams
   } = useAppStore();
   
   return { 
@@ -420,8 +338,7 @@ export const useExams = () => {
     subscribedExams, 
     subscribeToExam, 
     unsubscribeFromExam,
-    fetchExams,
-    fetchExamsByPerplexity
+    fetchExams
   };
 };
 
