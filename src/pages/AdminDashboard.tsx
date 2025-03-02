@@ -7,17 +7,16 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { searchExamsWithPerplexity, checkForDuplicateExams } from "@/lib/perplexityClient";
+import { searchExamsWithSerpApi, checkForDuplicateExams } from "@/lib/serpApiClient";
 import { supabase } from "@/lib/supabase";
 import { Exam } from "@/lib/types";
 import { format } from "date-fns";
-import { SearchIcon, PlusIcon, CheckIcon, XIcon, AlertTriangleIcon } from "lucide-react";
+import { SearchIcon, PlusIcon, CheckIcon, XIcon, AlertTriangleIcon, SettingsIcon } from "lucide-react";
 
 interface PendingExam {
   id: string;
@@ -39,7 +38,7 @@ interface PendingExam {
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentUser } = useAuth();
-  const { perplexityApiKey } = useSettings();
+  const { serpApiKey, setSerpApiKey } = useSettings();
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,7 +53,7 @@ const AdminDashboard = () => {
     return null;
   }
 
-  if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
+  if (currentUser?.role !== "admin" && currentUser?.role !== "admin") {
     navigate("/dashboard");
     return null;
   }
@@ -87,14 +86,14 @@ const AdminDashboard = () => {
       return;
     }
 
-    if (!perplexityApiKey) {
-      toast.error('Perplexity API key is not configured. Please add it in Settings.');
+    if (!serpApiKey) {
+      toast.error('SerpAPI key is not configured. Please add it in Settings.');
       return;
     }
 
     setIsSearching(true);
     try {
-      const results = await searchExamsWithPerplexity(searchQuery, perplexityApiKey);
+      const results = await searchExamsWithSerpApi(searchQuery, serpApiKey);
       setSearchResults(results);
       if (results.length === 0) {
         toast.info('No results found for your query');
@@ -133,7 +132,7 @@ const AdminDashboard = () => {
         registration_end_date: formatDateForDb(exam.registrationEndDate),
         exam_date: formatDateForDb(exam.examDate),
         result_date: formatDateForDb(exam.resultDate),
-        answer_key_date: formatDateForDb(exam.answerKeyDate),
+        answer_key_date: formatDateForDb(exam.resultDate), // Set answer key date to result date as fallback
         website_url: exam.websiteUrl || '',
         eligibility: exam.eligibility || null,
         application_fee: exam.applicationFee || null,
@@ -233,7 +232,7 @@ const AdminDashboard = () => {
                 <CardHeader>
                   <CardTitle>Search for Exams</CardTitle>
                   <CardDescription>
-                    Use the Perplexity API to find and add new exams to the database
+                    Use SerpAPI to find and add new exams to the database
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -258,11 +257,11 @@ const AdminDashboard = () => {
                     </Button>
                   </div>
                   
-                  {!perplexityApiKey && (
+                  {!serpApiKey && (
                     <div className="mt-4 p-4 bg-yellow-50 text-yellow-800 rounded-md flex items-center gap-2">
                       <AlertTriangleIcon className="h-5 w-5" />
                       <span>
-                        Perplexity API key is not configured. Please add it in the{" "}
+                        SerpAPI key is not configured. Please add it in the{" "}
                         <Button 
                           variant="link" 
                           className="p-0 h-auto text-yellow-800 underline"
@@ -401,7 +400,7 @@ const AdminDashboard = () => {
                             <CardTitle className="text-lg">{exam.name}</CardTitle>
                             <div className="flex gap-2 items-center mt-1">
                               <CardDescription>{exam.category}</CardDescription>
-                              <Badge variant={exam.status === 'pending' ? 'outline' : (exam.status === 'approved' ? 'success' : 'destructive')}>
+                              <Badge variant={exam.status === 'pending' ? 'outline' : (exam.status === 'approved' ? 'secondary' : 'destructive')}>
                                 {exam.status}
                               </Badge>
                             </div>

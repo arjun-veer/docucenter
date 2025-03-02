@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { ExamCard } from "@/components/cards/ExamCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,7 +50,6 @@ const Exams = () => {
     unsubscribeFromExam(examId);
   };
 
-  // Add this section to the JSX part where appropriate, typically above the exam listings
   // Inside the main content area, after the title and description
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -67,12 +66,12 @@ const Exams = () => {
                 </p>
               </div>
               
-              {currentUser?.role === 'admin' || currentUser?.role === 'superadmin' ? (
+              {currentUser?.role === 'admin' && (
                 <Button onClick={() => navigate('/admin')} className="flex items-center gap-1">
                   <PlusIcon className="h-4 w-4" />
                   Add New Exams
                 </Button>
-              ) : null}
+              )}
             </div>
           </div>
           
@@ -103,13 +102,60 @@ const Exams = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredExams.map((exam) => (
-              <ExamCard
-                key={exam.id}
-                exam={exam}
-                isSubscribed={exam.isSubscribed}
-                onSubscribe={subscribe}
-                onUnsubscribe={unsubscribe}
-              />
+              <div key={exam.id} className="bg-card rounded-lg border shadow-sm overflow-hidden">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold">{exam.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{exam.category}</p>
+                  
+                  <div className="mt-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Registration:</span>
+                      <span className="font-medium">
+                        {new Date(exam.registrationStartDate).toLocaleDateString()} - 
+                        {new Date(exam.registrationEndDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    {exam.examDate && (
+                      <div className="flex justify-between text-sm">
+                        <span>Exam Date:</span>
+                        <span className="font-medium">{new Date(exam.examDate).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                    
+                    {exam.resultDate && (
+                      <div className="flex justify-between text-sm">
+                        <span>Results:</span>
+                        <span className="font-medium">{new Date(exam.resultDate).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-6 flex justify-between items-center">
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/exams/${exam.id}`)}>
+                      View Details
+                    </Button>
+                    
+                    {exam.isSubscribed ? (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => unsubscribe(exam.id)}
+                      >
+                        Unsubscribe
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => subscribe(exam.id)}
+                      >
+                        Subscribe
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>

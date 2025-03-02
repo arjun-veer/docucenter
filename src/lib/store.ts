@@ -1,8 +1,8 @@
+
 import { create } from 'zustand';
 import { Exam, User, UserDocument } from './types';
 import { currentUser, mockExams, mockDocuments } from './mockData';
 import { supabase } from './supabase';
-import { setPerplexityApiKey, getPerplexityApiKey } from './perplexity';
 import { toast } from 'sonner';
 
 interface AppState {
@@ -28,6 +28,8 @@ interface AppState {
   // Settings
   perplexityApiKey: string | null;
   setPerplexityApiKey: (key: string) => void;
+  serpApiKey: string | null;
+  setSerpApiKey: (key: string) => void;
 }
 
 // For demo purposes, we'll use a simple store without actual API calls
@@ -299,21 +301,37 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Settings
   perplexityApiKey: null,
   setPerplexityApiKey: (key: string) => {
-    setPerplexityApiKey(key); // Set in the module for API calls
     set({ perplexityApiKey: key });
     
     // Store in localStorage for persistence between sessions
     localStorage.setItem('perplexityApiKey', key);
     
     toast.success('Perplexity API key saved');
+  },
+  
+  // Add SerpAPI key settings
+  serpApiKey: localStorage.getItem('serpApiKey'),
+  setSerpApiKey: (key: string) => {
+    set({ serpApiKey: key });
+    
+    // Store in localStorage for persistence between sessions
+    localStorage.setItem('serpApiKey', key);
+    
+    toast.success('SerpAPI key saved');
   }
 }));
 
-// On app initialization, try to load the API key from localStorage
+// On app initialization, try to load the API keys from localStorage
 if (typeof window !== 'undefined') {
-  const storedKey = localStorage.getItem('perplexityApiKey');
-  if (storedKey) {
-    useAppStore.getState().setPerplexityApiKey(storedKey);
+  const storedPerplexityKey = localStorage.getItem('perplexityApiKey');
+  const storedSerpApiKey = localStorage.getItem('serpApiKey');
+  
+  if (storedPerplexityKey) {
+    useAppStore.getState().setPerplexityApiKey(storedPerplexityKey);
+  }
+  
+  if (storedSerpApiKey) {
+    useAppStore.getState().setSerpApiKey(storedSerpApiKey);
   }
 }
 
@@ -350,6 +368,6 @@ export const useDocuments = () => {
 
 // Helper to access settings
 export const useSettings = () => {
-  const { perplexityApiKey, setPerplexityApiKey } = useAppStore();
-  return { perplexityApiKey, setPerplexityApiKey };
+  const { perplexityApiKey, setPerplexityApiKey, serpApiKey, setSerpApiKey } = useAppStore();
+  return { perplexityApiKey, setPerplexityApiKey, serpApiKey, setSerpApiKey };
 };

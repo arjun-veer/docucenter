@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import AdminDashboard from "./pages/AdminDashboard";
+import DocumentProcessor from "./pages/DocumentProcessor";
 import { toast } from "sonner";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const AppRoutes = () => {
       <Route path="/settings" element={<Settings />} />
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/document-processor" element={<DocumentProcessor />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
