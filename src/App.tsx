@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
+import { toast } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +24,16 @@ const AppRoutes = () => {
 
   // Fetch initial data on app load
   useEffect(() => {
-    fetchExams();
+    const loadInitialData = async () => {
+      try {
+        await fetchExams();
+      } catch (error) {
+        console.error("Failed to fetch initial exam data:", error);
+        toast.error("Could not load exam data. Please try again later.");
+      }
+    };
+    
+    loadInitialData();
   }, [fetchExams]);
 
   return (
