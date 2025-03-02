@@ -1,178 +1,117 @@
-
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { ExamCard } from "@/components/ui/ExamCard";
+import { ExamCard } from "@/components/cards/ExamCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Exam, ExamCategory } from "@/lib/types";
-import { useExams, useSettings, useAuth } from "@/lib/store";
-import { Search, Filter, Calendar, Database, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useExams, useAuth } from "@/lib/store";
+import { PlusIcon } from "lucide-react";
 
+// Update the Exams component to include a button to go to the Admin Dashboard
 const Exams = () => {
-  const { exams, fetchExams } = useExams();
+  const { exams, subscribedExams, subscribeToExam, unsubscribeFromExam } = useExams();
   const { currentUser } = useAuth();
-  const [filteredExams, setFilteredExams] = useState<Exam[]>(exams);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [isUpcoming, setIsUpcoming] = useState(true);
+  const navigate = useNavigate();
+  const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [filteredExams, setFilteredExams] = useState(exams);
 
-  // All available categories from the exams
-  const categories: ExamCategory[] = [
-    'Engineering', 
-    'Medical', 
-    'Civil Services',
-    'Banking',
-    'Railways',
-    'Defence',
-    'Teaching',
-    'State Services',
-    'School Board',
-    'Law',
-    'Management',
-    'Other'
-  ];
-
-  // Fetch exams on mount
   useEffect(() => {
-    fetchExams();
-  }, [fetchExams]);
+    let filtered = exams;
 
-  // Filter exams based on search query, category, and upcoming status
-  useEffect(() => {
-    let result = [...exams];
-    
-    // Filter by search query
-    if (searchQuery) {
-      result = result.filter(exam => 
-        exam.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        exam.description.toLowerCase().includes(searchQuery.toLowerCase())
+    if (categoryFilter !== 'All') {
+      filtered = filtered.filter(exam => exam.category === categoryFilter);
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(exam =>
+        exam.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
-    // Filter by category
-    if (selectedCategory && selectedCategory !== "all") {
-      result = result.filter(exam => exam.category === selectedCategory);
-    }
-    
-    // Filter by upcoming status
-    if (isUpcoming) {
-      const now = new Date();
-      result = result.filter(exam => 
-        new Date(exam.registrationEndDate) > now || 
-        (exam.examDate && new Date(exam.examDate) > now)
-      );
-    }
-    
-    setFilteredExams(result);
-  }, [exams, searchQuery, selectedCategory, isUpcoming]);
 
-  // We'll assume user with ID "admin-user" is admin for now
-  // In a real app, you'd have proper roles
-  const isAdmin = currentUser?.id === "admin-user";
+    setFilteredExams(filtered);
+  }, [exams, categoryFilter, searchTerm]);
 
+  const handleCategoryChange = (category: string) => {
+    setCategoryFilter(category);
+  };
+
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+  };
+
+  const subscribe = (examId: string) => {
+    subscribeToExam(examId);
+  };
+
+  const unsubscribe = (examId: string) => {
+    unsubscribeFromExam(examId);
+  };
+
+  // Add this section to the JSX part where appropriate, typically above the exam listings
+  // Inside the main content area, after the title and description
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
-      <main className="flex-1 container mx-auto px-4 py-20">
-        <div className="max-w-5xl mx-auto">
-          <div className="mb-8">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
-              <h1 className="text-3xl font-bold">Competitive Exams</h1>
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="space-y-8">
+          <div>
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold">Upcoming Exams</h1>
+                <p className="text-muted-foreground mt-1">
+                  Browse and track important exam dates
+                </p>
+              </div>
               
-              {isAdmin && (
-                <Button asChild className="gap-2">
-                  <Link to="/admin">
-                    <User className="h-4 w-4" />
-                    Admin Dashboard
-                  </Link>
+              {currentUser?.role === 'admin' || currentUser?.role === 'superadmin' ? (
+                <Button onClick={() => navigate('/admin')} className="flex items-center gap-1">
+                  <PlusIcon className="h-4 w-4" />
+                  Add New Exams
                 </Button>
-              )}
+              ) : null}
             </div>
-            <p className="text-muted-foreground">
-              Discover and track competitive exams across various categories in India
-            </p>
           </div>
           
-          {/* Filters Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search exams..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            
-            {/* Category filter */}
-            <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
-            >
-              <SelectTrigger className="w-full">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  <SelectValue placeholder="Filter by category" />
-                </div>
+          <div className="flex items-center space-x-4">
+            <Input
+              type="text"
+              placeholder="Search exams..."
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+            <Select onValueChange={handleCategoryChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by Category" defaultValue={categoryFilter} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
+                <SelectItem value="All">All Categories</SelectItem>
+                <SelectItem value="Engineering">Engineering</SelectItem>
+                <SelectItem value="Medical">Medical</SelectItem>
+                <SelectItem value="Law">Law</SelectItem>
+                <SelectItem value="Management">Management</SelectItem>
+                <SelectItem value="Civil Services">Civil Services</SelectItem>
+                <SelectItem value="Banking">Banking</SelectItem>
+                <SelectItem value="Teaching">Teaching</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
-            
-            {/* Upcoming toggle */}
-            <Button
-              variant={isUpcoming ? "default" : "outline"}
-              onClick={() => setIsUpcoming(!isUpcoming)}
-              className="gap-2"
-            >
-              <Calendar className="h-4 w-4" />
-              {isUpcoming ? "Upcoming Exams" : "All Exams"}
-            </Button>
           </div>
           
-          {/* Results count */}
-          <div className="mb-6">
-            <p className="text-sm text-muted-foreground">
-              Showing {filteredExams.length} {filteredExams.length === 1 ? 'exam' : 'exams'}
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredExams.map((exam) => (
+              <ExamCard
+                key={exam.id}
+                exam={exam}
+                isSubscribed={exam.isSubscribed}
+                onSubscribe={subscribe}
+                onUnsubscribe={unsubscribe}
+              />
+            ))}
           </div>
-          
-          {/* Exams Grid */}
-          {filteredExams.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredExams.map((exam) => (
-                <ExamCard key={exam.id} exam={exam} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20">
-              <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-              <h3 className="text-xl font-medium mb-2">No exams found</h3>
-              <p className="text-muted-foreground mb-6">
-                Try adjusting your filters or search criteria
-              </p>
-              
-              {isAdmin && (
-                <Button asChild>
-                  <Link to="/admin">
-                    Go to Admin Dashboard to Add Exams
-                  </Link>
-                </Button>
-              )}
-            </div>
-          )}
         </div>
       </main>
       

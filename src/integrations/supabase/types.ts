@@ -9,7 +9,60 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      pending_exams: {
+        Row: {
+          answer_key_date: string | null
+          application_fee: string | null
+          category: string
+          created_at: string
+          description: string
+          eligibility: string | null
+          exam_date: string | null
+          id: string
+          name: string
+          registration_end_date: string
+          registration_start_date: string
+          result_date: string | null
+          status: string
+          updated_at: string
+          website_url: string
+        }
+        Insert: {
+          answer_key_date?: string | null
+          application_fee?: string | null
+          category: string
+          created_at?: string
+          description: string
+          eligibility?: string | null
+          exam_date?: string | null
+          id?: string
+          name: string
+          registration_end_date: string
+          registration_start_date: string
+          result_date?: string | null
+          status?: string
+          updated_at?: string
+          website_url: string
+        }
+        Update: {
+          answer_key_date?: string | null
+          application_fee?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          eligibility?: string | null
+          exam_date?: string | null
+          id?: string
+          name?: string
+          registration_end_date?: string
+          registration_start_date?: string
+          result_date?: string | null
+          status?: string
+          updated_at?: string
+          website_url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

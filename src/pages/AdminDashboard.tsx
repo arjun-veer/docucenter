@@ -1,538 +1,510 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth, useSettings } from "@/lib/store";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertCircle, Search, CheckCircle, XCircle, RefreshCw, ExternalLink, Sparkles } from "lucide-react";
-import { useSettings } from "@/lib/store";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { searchExamsWithPerplexity, checkForDuplicateExams } from "@/lib/perplexityClient";
 import { supabase } from "@/lib/supabase";
-import { fetchExamDataFromPerplexity } from "@/lib/perplexity";
-import { useNavigate } from "react-router-dom";
-import { ExamDataResponse } from "@/lib/perplexity";
+import { Exam } from "@/lib/types";
+import { format } from "date-fns";
+import { SearchIcon, PlusIcon, CheckIcon, XIcon, AlertTriangleIcon } from "lucide-react";
 
-type PendingExam = ExamDataResponse & {
-  id?: string;
+interface PendingExam {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  registration_start_date: string;
+  registration_end_date: string;
+  exam_date: string | null;
+  result_date: string | null;
+  answer_key_date: string | null;
+  website_url: string;
+  eligibility: string | null;
+  application_fee: string | null;
   status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at: string;
 }
 
 const AdminDashboard = () => {
+  const { isAuthenticated, currentUser } = useAuth();
   const { perplexityApiKey } = useSettings();
   const navigate = useNavigate();
-  
-  const [activeTab, setActiveTab] = useState("pending");
+  const { toast: uiToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<Partial<Exam>[]>([]);
   const [pendingExams, setPendingExams] = useState<PendingExam[]>([]);
-  const [approvedExams, setApprovedExams] = useState<PendingExam[]>([]);
-  const [rejectedExams, setRejectedExams] = useState<PendingExam[]>([]);
-  
-  // Fetch pending exams on mount
-  useEffect(() => {
-    const fetchPendingExams = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('pending_exams')
-          .select('*');
-        
-        if (error) {
-          console.error('Error fetching pending exams:', error);
-          toast.error('Failed to load pending exams');
-          return;
-        }
-        
-        if (data) {
-          // Map DB format to app format
-          const formattedPending = data
-            .filter(exam => exam.status === 'pending')
-            .map(exam => ({
-              id: exam.id,
-              name: exam.name,
-              category: exam.category,
-              description: exam.description,
-              registrationStartDate: exam.registration_start_date,
-              registrationEndDate: exam.registration_end_date,
-              examDate: exam.exam_date || undefined,
-              resultDate: exam.result_date || undefined,
-              answerKeyDate: exam.answer_key_date || undefined,
-              websiteUrl: exam.website_url,
-              eligibility: exam.eligibility || undefined,
-              applicationFee: exam.application_fee || undefined,
-              status: exam.status as 'pending'
-            }));
-          
-          const formattedApproved = data
-            .filter(exam => exam.status === 'approved')
-            .map(exam => ({
-              id: exam.id,
-              name: exam.name,
-              category: exam.category,
-              description: exam.description,
-              registrationStartDate: exam.registration_start_date,
-              registrationEndDate: exam.registration_end_date,
-              examDate: exam.exam_date || undefined,
-              resultDate: exam.result_date || undefined,
-              answerKeyDate: exam.answer_key_date || undefined,
-              websiteUrl: exam.website_url,
-              eligibility: exam.eligibility || undefined,
-              applicationFee: exam.application_fee || undefined,
-              status: exam.status as 'approved'
-            }));
-          
-          const formattedRejected = data
-            .filter(exam => exam.status === 'rejected')
-            .map(exam => ({
-              id: exam.id,
-              name: exam.name,
-              category: exam.category,
-              description: exam.description,
-              registrationStartDate: exam.registration_start_date,
-              registrationEndDate: exam.registration_end_date,
-              examDate: exam.exam_date || undefined,
-              resultDate: exam.result_date || undefined,
-              answerKeyDate: exam.answer_key_date || undefined,
-              websiteUrl: exam.website_url,
-              eligibility: exam.eligibility || undefined,
-              applicationFee: exam.application_fee || undefined,
-              status: exam.status as 'rejected'
-            }));
-          
-          setPendingExams(formattedPending);
-          setApprovedExams(formattedApproved);
-          setRejectedExams(formattedRejected);
-        }
-      } catch (error) {
-        console.error('Error in fetchPendingExams:', error);
-        toast.error('Failed to load exams');
-      }
-    };
-    
-    fetchPendingExams();
-  }, []);
-  
-  const handleSearch = async () => {
-    if (!perplexityApiKey) {
-      toast.error('Perplexity API key not configured. Please add it in Settings.');
-      return;
-    }
-    
-    if (!searchQuery.trim()) {
-      toast.error('Please enter an exam name to search');
-      return;
-    }
-    
-    setIsSearching(true);
-    
+  const [activeTab, setActiveTab] = useState("search");
+
+  // Redirect if not authenticated or not admin
+  if (!isAuthenticated) {
+    navigate("/auth");
+    return null;
+  }
+
+  if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
+    navigate("/dashboard");
+    return null;
+  }
+
+  const fetchPendingExams = async () => {
     try {
-      // First check if the exam already exists in the database
-      const { data: existingExams } = await supabase
-        .from('exams')
-        .select('name')
-        .ilike('name', `%${searchQuery}%`);
-      
-      const { data: existingPendingExams } = await supabase
-        .from('pending_exams')
-        .select('name')
-        .ilike('name', `%${searchQuery}%`);
-      
-      // If exam exists in either table, notify user
-      const allExams = [...(existingExams || []), ...(existingPendingExams || [])];
-      if (allExams.length > 0) {
-        const exactMatch = allExams.some(exam => 
-          exam.name.toLowerCase() === searchQuery.toLowerCase()
-        );
-        
-        if (exactMatch) {
-          toast.error('This exam already exists in the database!');
-          setIsSearching(false);
-          return;
-        }
-        
-        toast.warning('Similar exams may already exist in the database. Please check before adding.');
-      }
-      
-      // If no exact match, fetch data from Perplexity
-      const examData = await fetchExamDataFromPerplexity(searchQuery);
-      
-      if (!examData) {
-        toast.error('Failed to fetch exam data from Perplexity AI');
-        setIsSearching(false);
-        return;
-      }
-      
-      // Save to pending_exams table
       const { data, error } = await supabase
         .from('pending_exams')
-        .insert({
-          name: examData.name,
-          category: examData.category,
-          description: examData.description,
-          registration_start_date: examData.registrationStartDate,
-          registration_end_date: examData.registrationEndDate,
-          exam_date: examData.examDate || null,
-          result_date: examData.resultDate || null,
-          answer_key_date: examData.answerKeyDate || null,
-          website_url: examData.websiteUrl,
-          eligibility: examData.eligibility || null,
-          application_fee: examData.applicationFee || null,
-          status: 'pending',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error('Error saving exam to database:', error);
-        toast.error('Failed to save exam data');
-      } else if (data) {
-        // Format and add to pendingExams state
-        const newPendingExam: PendingExam = {
-          id: data.id,
-          name: data.name,
-          category: data.category,
-          description: data.description,
-          registrationStartDate: data.registration_start_date,
-          registrationEndDate: data.registration_end_date,
-          examDate: data.exam_date || undefined,
-          resultDate: data.result_date || undefined,
-          answerKeyDate: data.answer_key_date || undefined,
-          websiteUrl: data.website_url,
-          eligibility: data.eligibility || undefined,
-          applicationFee: data.application_fee || undefined,
-          status: 'pending'
-        };
-        
-        setPendingExams(prev => [newPendingExam, ...prev]);
-        setActiveTab("pending");
-        toast.success('Exam data fetched and added to review queue');
-      }
-      
-      // Clear search
-      setSearchQuery("");
+      if (error) throw error;
+      setPendingExams(data || []);
     } catch (error) {
-      console.error('Error in handleSearch:', error);
-      toast.error('Failed to process exam search');
+      console.error('Error fetching pending exams:', error);
+      toast.error('Failed to load pending exams');
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === "pending") {
+      fetchPendingExams();
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      toast.error('Please enter a search query');
+      return;
+    }
+
+    if (!perplexityApiKey) {
+      toast.error('Perplexity API key is not configured. Please add it in Settings.');
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const results = await searchExamsWithPerplexity(searchQuery, perplexityApiKey);
+      setSearchResults(results);
+      if (results.length === 0) {
+        toast.info('No results found for your query');
+      }
+    } catch (error: any) {
+      console.error('Search error:', error);
+      toast.error(`Search failed: ${error.message}`);
     } finally {
       setIsSearching(false);
     }
   };
-  
-  const handleApprove = async (examId: string) => {
+
+  const addToPendingExams = async (exam: Partial<Exam>) => {
     try {
-      // Find the pending exam
-      const examToApprove = pendingExams.find(exam => exam.id === examId);
-      if (!examToApprove) {
-        toast.error('Exam not found');
+      // First check if this exam might already exist
+      const { existingExams, pendingExams } = await checkForDuplicateExams(exam.name || '');
+      
+      if (existingExams.length > 0) {
+        toast.error(`An exam with a similar name already exists in the database.`);
         return;
       }
       
-      // First, insert into exams table
-      const { data: examData, error: examError } = await supabase
-        .from('exams')
-        .insert({
-          name: examToApprove.name,
-          category: examToApprove.category,
-          description: examToApprove.description,
-          registration_start_date: examToApprove.registrationStartDate,
-          registration_end_date: examToApprove.registrationEndDate,
-          exam_date: examToApprove.examDate || null,
-          result_date: examToApprove.resultDate || null,
-          answer_key_date: examToApprove.answerKeyDate || null,
-          website_url: examToApprove.websiteUrl,
-          eligibility: examToApprove.eligibility || null,
-          application_fee: examToApprove.applicationFee || null,
-          is_verified: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-      
-      if (examError) {
-        console.error('Error inserting into exams table:', examError);
-        toast.error('Failed to add exam to database');
+      if (pendingExams.length > 0) {
+        toast.error(`An exam with a similar name is already pending review.`);
         return;
       }
       
-      // Then update status in pending_exams table
+      // Format dates for Supabase
+      const formatDateForDb = (date: Date | undefined) => date ? date.toISOString() : null;
+      
+      const { error } = await supabase.from('pending_exams').insert({
+        name: exam.name || '',
+        category: exam.category || 'General',
+        description: exam.description || '',
+        registration_start_date: formatDateForDb(exam.registrationStartDate),
+        registration_end_date: formatDateForDb(exam.registrationEndDate),
+        exam_date: formatDateForDb(exam.examDate),
+        result_date: formatDateForDb(exam.resultDate),
+        answer_key_date: formatDateForDb(exam.answerKeyDate),
+        website_url: exam.websiteUrl || '',
+        eligibility: exam.eligibility || null,
+        application_fee: exam.applicationFee || null,
+        status: 'pending'
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Exam added to pending review queue');
+      // Remove the exam from search results to prevent duplicates
+      setSearchResults(current => current.filter(e => e.name !== exam.name));
+    } catch (error: any) {
+      console.error('Error adding to pending exams:', error);
+      toast.error(`Failed to add exam: ${error.message}`);
+    }
+  };
+
+  const approveExam = async (pendingExam: PendingExam) => {
+    try {
+      // First update the pending exam status
       const { error: updateError } = await supabase
         .from('pending_exams')
         .update({ status: 'approved' })
-        .eq('id', examId);
+        .eq('id', pendingExam.id);
       
-      if (updateError) {
-        console.error('Error updating pending exam status:', updateError);
-        toast.error('Failed to update exam status');
-        return;
-      }
+      if (updateError) throw updateError;
       
-      // Update local state
-      setPendingExams(prev => prev.filter(exam => exam.id !== examId));
-      setApprovedExams(prev => [{...examToApprove, status: 'approved'}, ...prev]);
+      // Then add it to the main exams table
+      const { error: insertError } = await supabase.from('exams').insert({
+        name: pendingExam.name,
+        category: pendingExam.category,
+        description: pendingExam.description,
+        registration_start_date: pendingExam.registration_start_date,
+        registration_end_date: pendingExam.registration_end_date,
+        exam_date: pendingExam.exam_date,
+        result_date: pendingExam.result_date,
+        answer_key_date: pendingExam.answer_key_date,
+        website_url: pendingExam.website_url,
+        eligibility: pendingExam.eligibility,
+        application_fee: pendingExam.application_fee,
+        is_verified: true
+      });
       
-      toast.success('Exam approved and added to database');
-    } catch (error) {
-      console.error('Error in handleApprove:', error);
-      toast.error('Failed to approve exam');
+      if (insertError) throw insertError;
+      
+      toast.success('Exam approved and added to the database');
+      fetchPendingExams();
+    } catch (error: any) {
+      console.error('Error approving exam:', error);
+      toast.error(`Failed to approve exam: ${error.message}`);
     }
   };
-  
-  const handleReject = async (examId: string) => {
+
+  const rejectExam = async (pendingExamId: string) => {
     try {
-      // Update status in pending_exams table
       const { error } = await supabase
         .from('pending_exams')
         .update({ status: 'rejected' })
-        .eq('id', examId);
+        .eq('id', pendingExamId);
       
-      if (error) {
-        console.error('Error updating pending exam status:', error);
-        toast.error('Failed to reject exam');
-        return;
-      }
+      if (error) throw error;
       
-      // Update local state
-      const examToReject = pendingExams.find(exam => exam.id === examId);
-      if (examToReject) {
-        setPendingExams(prev => prev.filter(exam => exam.id !== examId));
-        setRejectedExams(prev => [{...examToReject, status: 'rejected'}, ...prev]);
-        toast.success('Exam rejected');
-      }
-    } catch (error) {
-      console.error('Error in handleReject:', error);
-      toast.error('Failed to reject exam');
+      toast.success('Exam rejected');
+      fetchPendingExams();
+    } catch (error: any) {
+      console.error('Error rejecting exam:', error);
+      toast.error(`Failed to reject exam: ${error.message}`);
     }
   };
-  
-  const renderExamCard = (exam: PendingExam) => {
-    const formatDate = (dateStr?: string) => {
-      if (!dateStr) return 'Not available';
-      return new Date(dateStr).toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      });
-    };
-    
-    return (
-      <Card key={exam.id} className="mb-4">
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-xl">{exam.name}</CardTitle>
-              <CardDescription>{exam.category}</CardDescription>
-            </div>
-            <a 
-              href={exam.websiteUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm flex items-center text-blue-500 hover:underline"
-            >
-              <ExternalLink className="h-3.5 w-3.5 mr-1" />
-              Official Website
-            </a>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="text-sm">{exam.description}</div>
-          
-          <Separator />
-          
-          <div className="grid grid-cols-2 gap-y-2 text-sm">
-            <div className="font-medium">Registration Start:</div>
-            <div>{formatDate(exam.registrationStartDate)}</div>
-            
-            <div className="font-medium">Registration End:</div>
-            <div>{formatDate(exam.registrationEndDate)}</div>
-            
-            {exam.examDate && (
-              <>
-                <div className="font-medium">Exam Date:</div>
-                <div>{formatDate(exam.examDate)}</div>
-              </>
-            )}
-            
-            {exam.resultDate && (
-              <>
-                <div className="font-medium">Result Date:</div>
-                <div>{formatDate(exam.resultDate)}</div>
-              </>
-            )}
-            
-            {exam.answerKeyDate && (
-              <>
-                <div className="font-medium">Answer Key Date:</div>
-                <div>{formatDate(exam.answerKeyDate)}</div>
-              </>
-            )}
-            
-            {exam.eligibility && (
-              <>
-                <div className="font-medium">Eligibility:</div>
-                <div>{exam.eligibility}</div>
-              </>
-            )}
-            
-            {exam.applicationFee && (
-              <>
-                <div className="font-medium">Application Fee:</div>
-                <div>{exam.applicationFee}</div>
-              </>
-            )}
-          </div>
-        </CardContent>
-        {exam.status === 'pending' && (
-          <CardFooter className="flex justify-end gap-2">
-            <Button 
-              variant="destructive" 
-              onClick={() => handleReject(exam.id!)}
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Reject
-            </Button>
-            <Button 
-              variant="default" 
-              onClick={() => handleApprove(exam.id!)}
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve
-            </Button>
-          </CardFooter>
-        )}
-      </Card>
-    );
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not specified';
+    return format(new Date(dateString), 'PPP');
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
-      <main className="flex-1 container mx-auto px-4 py-20">
-        <div className="max-w-5xl mx-auto">
-          <div className="mb-8">
+      <main className="flex-1 container mx-auto px-4 py-12">
+        <div className="space-y-6">
+          <div>
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
             <p className="text-muted-foreground mt-1">
-              Manage exam data and approve information from Perplexity AI
+              Manage exams and application content
             </p>
           </div>
           
-          <div className="bg-muted/40 border rounded-lg p-4 mb-8">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search for an exam using Perplexity AI..."
-                  className="pl-10"
-                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                  disabled={isSearching}
-                />
-              </div>
-              <Button 
-                onClick={handleSearch}
-                disabled={isSearching || !perplexityApiKey || !searchQuery.trim()}
-              >
-                {isSearching ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Searching...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Search with AI
-                  </>
-                )}
-              </Button>
-            </div>
-            
-            {!perplexityApiKey && (
-              <div className="flex items-center mt-3 text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
-                <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-                <p>
-                  Perplexity API key not configured. 
-                  <Button 
-                    variant="link" 
-                    className="h-auto p-0 text-amber-600 underline"
-                    onClick={() => navigate('/settings')}
-                  >
-                    Add it in Settings
-                  </Button>
-                </p>
-              </div>
-            )}
-          </div>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="pending" className="relative">
-                Pending Review
-                {pendingExams.length > 0 && (
-                  <span className="absolute top-1 right-1 bg-primary text-xs text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center">
-                    {pendingExams.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="approved">
-                Approved
-                {approvedExams.length > 0 && (
-                  <span className="ml-2 bg-green-100 text-green-800 text-xs rounded-full px-2 py-0.5">
-                    {approvedExams.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="rejected">
-                Rejected
-                {rejectedExams.length > 0 && (
-                  <span className="ml-2 bg-red-100 text-red-800 text-xs rounded-full px-2 py-0.5">
-                    {rejectedExams.length}
-                  </span>
-                )}
-              </TabsTrigger>
+          <Tabs defaultValue="search" onValueChange={handleTabChange}>
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="search">Search New Exams</TabsTrigger>
+              <TabsTrigger value="pending">Pending Exams</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="pending">
+            <TabsContent value="search" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Search for Exams</CardTitle>
+                  <CardDescription>
+                    Use the Perplexity API to find and add new exams to the database
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Search for exams (e.g., 'engineering entrance exams in India')"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      />
+                    </div>
+                    <Button onClick={handleSearch} disabled={isSearching}>
+                      {isSearching ? (
+                        <span className="flex items-center gap-1">Searching...</span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <SearchIcon className="h-4 w-4" />
+                          Search
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {!perplexityApiKey && (
+                    <div className="mt-4 p-4 bg-yellow-50 text-yellow-800 rounded-md flex items-center gap-2">
+                      <AlertTriangleIcon className="h-5 w-5" />
+                      <span>
+                        Perplexity API key is not configured. Please add it in the{" "}
+                        <Button 
+                          variant="link" 
+                          className="p-0 h-auto text-yellow-800 underline"
+                          onClick={() => navigate("/settings")}
+                        >
+                          Settings
+                        </Button>
+                        {" "}page.
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {searchResults.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Search Results</h2>
+                  
+                  {searchResults.map((exam, index) => (
+                    <Card key={index} className="overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <CardTitle className="text-lg">{exam.name}</CardTitle>
+                            <CardDescription>{exam.category}</CardDescription>
+                          </div>
+                          <Button onClick={() => addToPendingExams(exam)} size="sm">
+                            <PlusIcon className="h-4 w-4 mr-1" />
+                            Add to Review
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pb-3">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">Registration:</span>
+                              <div className="mt-1">
+                                {exam.registrationStartDate && exam.registrationEndDate ? (
+                                  <span>
+                                    {format(exam.registrationStartDate, 'PP')} - {format(exam.registrationEndDate, 'PP')}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">Dates not available</span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">Exam Date:</span>
+                              <div className="mt-1">
+                                {exam.examDate ? (
+                                  <span>{format(exam.examDate, 'PP')}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">Not specified</span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">Result Date:</span>
+                              <div className="mt-1">
+                                {exam.resultDate ? (
+                                  <span>{format(exam.resultDate, 'PP')}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">Not specified</span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {exam.applicationFee && (
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Application Fee:</span>
+                                <div className="mt-1">{exam.applicationFee}</div>
+                              </div>
+                            )}
+                            
+                            {exam.websiteUrl && (
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Website:</span>
+                                <div className="mt-1">
+                                  <a 
+                                    href={exam.websiteUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline"
+                                  >
+                                    {exam.websiteUrl}
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {exam.description && (
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Description:</span>
+                                <p className="mt-1 line-clamp-3">{exam.description}</p>
+                              </div>
+                            )}
+                            
+                            {exam.eligibility && (
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Eligibility:</span>
+                                <p className="mt-1 line-clamp-3">{exam.eligibility}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="pending" className="space-y-6">
               {pendingExams.length === 0 ? (
-                <div className="text-center py-12 border rounded-lg bg-muted/20">
-                  <p className="text-muted-foreground">No exams pending review</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Use the search field above to fetch exam data from Perplexity AI
-                  </p>
-                </div>
+                <Card>
+                  <CardContent className="py-10">
+                    <div className="text-center text-muted-foreground">
+                      No pending exams to review
+                    </div>
+                  </CardContent>
+                </Card>
               ) : (
-                <div>
-                  {pendingExams.map(renderExamCard)}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="approved">
-              {approvedExams.length === 0 ? (
-                <div className="text-center py-12 border rounded-lg bg-muted/20">
-                  <p className="text-muted-foreground">No approved exams</p>
-                </div>
-              ) : (
-                <div>
-                  {approvedExams.map(renderExamCard)}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="rejected">
-              {rejectedExams.length === 0 ? (
-                <div className="text-center py-12 border rounded-lg bg-muted/20">
-                  <p className="text-muted-foreground">No rejected exams</p>
-                </div>
-              ) : (
-                <div>
-                  {rejectedExams.map(renderExamCard)}
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Pending Exams for Review</h2>
+                  
+                  {pendingExams.map((exam) => (
+                    <Card key={exam.id} className="overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <CardTitle className="text-lg">{exam.name}</CardTitle>
+                            <div className="flex gap-2 items-center mt-1">
+                              <CardDescription>{exam.category}</CardDescription>
+                              <Badge variant={exam.status === 'pending' ? 'outline' : (exam.status === 'approved' ? 'success' : 'destructive')}>
+                                {exam.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          {exam.status === 'pending' && (
+                            <div className="flex gap-2">
+                              <Button 
+                                onClick={() => rejectExam(exam.id)} 
+                                variant="outline" 
+                                size="sm"
+                                className="text-destructive border-destructive hover:bg-destructive/10"
+                              >
+                                <XIcon className="h-4 w-4 mr-1" />
+                                Reject
+                              </Button>
+                              <Button 
+                                onClick={() => approveExam(exam)} 
+                                variant="default" 
+                                size="sm"
+                              >
+                                <CheckIcon className="h-4 w-4 mr-1" />
+                                Approve
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pb-3">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">Registration:</span>
+                              <div className="mt-1">
+                                {formatDate(exam.registration_start_date)} - {formatDate(exam.registration_end_date)}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">Exam Date:</span>
+                              <div className="mt-1">{formatDate(exam.exam_date)}</div>
+                            </div>
+                            
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">Result Date:</span>
+                              <div className="mt-1">{formatDate(exam.result_date)}</div>
+                            </div>
+                            
+                            {exam.answer_key_date && (
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Answer Key Date:</span>
+                                <div className="mt-1">{formatDate(exam.answer_key_date)}</div>
+                              </div>
+                            )}
+                            
+                            {exam.application_fee && (
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Application Fee:</span>
+                                <div className="mt-1">{exam.application_fee}</div>
+                              </div>
+                            )}
+                            
+                            {exam.website_url && (
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Website:</span>
+                                <div className="mt-1">
+                                  <a 
+                                    href={exam.website_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline"
+                                  >
+                                    {exam.website_url}
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {exam.description && (
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Description:</span>
+                                <p className="mt-1 line-clamp-3">{exam.description}</p>
+                              </div>
+                            )}
+                            
+                            {exam.eligibility && (
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">Eligibility:</span>
+                                <p className="mt-1 line-clamp-3">{exam.eligibility}</p>
+                              </div>
+                            )}
+                            
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">Added on:</span>
+                              <div className="mt-1">{formatDate(exam.created_at)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </TabsContent>
