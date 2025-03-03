@@ -20,22 +20,38 @@ import { AlertTriangle, CheckCircle, Key } from "lucide-react";
 import { useSettings } from "@/lib/store";
 
 const Settings = () => {
-  const { perplexityApiKey, setPerplexityApiKey } = useSettings();
+  const { 
+    perplexityApiKey, 
+    setPerplexityApiKey,
+    serpApiKey,
+    setSerpApiKey
+  } = useSettings();
   
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
-  const [apiKey, setApiKey] = useState(perplexityApiKey || "");
+  const [perplexityKey, setPerplexityKey] = useState(perplexityApiKey || "");
+  const [serpKey, setSerpKey] = useState(serpApiKey || "");
   
   const handleSavePreferences = () => {
     toast.success("Preferences saved successfully");
   };
   
-  const handleSaveApiKey = () => {
-    if (apiKey.trim()) {
-      setPerplexityApiKey(apiKey.trim());
+  const handleSavePerplexityApiKey = () => {
+    if (perplexityKey.trim()) {
+      setPerplexityApiKey(perplexityKey.trim());
+      toast.success("Perplexity API key saved successfully");
     } else {
-      toast.error("Please enter a valid API key");
+      toast.error("Please enter a valid Perplexity API key");
+    }
+  };
+  
+  const handleSaveSerpApiKey = () => {
+    if (serpKey.trim()) {
+      setSerpApiKey(serpKey.trim());
+      toast.success("SerpAPI key saved successfully");
+    } else {
+      toast.error("Please enter a valid SerpAPI key");
     }
   };
   
@@ -131,11 +147,47 @@ const Settings = () => {
                   Configure third-party API keys for enhanced functionality
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                {/* SerpAPI Key */}
+                <div>
+                  <Label htmlFor="serp-api">SerpAPI Key</Label>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Used to search and fetch exam information from the web
+                  </p>
+                  
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="serp-api"
+                        type="password"
+                        placeholder="Enter your SerpAPI key"
+                        className="pl-10"
+                        value={serpKey}
+                        onChange={(e) => setSerpKey(e.target.value)}
+                      />
+                    </div>
+                    <Button onClick={handleSaveSerpApiKey}>Save Key</Button>
+                  </div>
+                  
+                  {serpApiKey ? (
+                    <div className="mt-2 flex items-center text-sm text-green-600">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      SerpAPI key configured
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex items-center text-sm text-amber-600">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      SerpAPI key not configured. Exam search functionality will be limited.
+                    </div>
+                  )}
+                </div>
+                
+                {/* Perplexity AI Key (Saved for future use) */}
                 <div>
                   <Label htmlFor="perplexity-api">Perplexity AI API Key</Label>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Used to automatically fetch exam information from the web
+                    Used to automatically fetch exam information from the web (for future use)
                   </p>
                   
                   <div className="flex gap-2">
@@ -146,22 +198,22 @@ const Settings = () => {
                         type="password"
                         placeholder="Enter your Perplexity API key"
                         className="pl-10"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
+                        value={perplexityKey}
+                        onChange={(e) => setPerplexityKey(e.target.value)}
                       />
                     </div>
-                    <Button onClick={handleSaveApiKey}>Save Key</Button>
+                    <Button onClick={handleSavePerplexityApiKey}>Save Key</Button>
                   </div>
                   
                   {perplexityApiKey ? (
                     <div className="mt-2 flex items-center text-sm text-green-600">
                       <CheckCircle className="h-4 w-4 mr-2" />
-                      API key configured
+                      Perplexity API key configured (for future use)
                     </div>
                   ) : (
                     <div className="mt-2 flex items-center text-sm text-amber-600">
                       <AlertTriangle className="h-4 w-4 mr-2" />
-                      API key not configured. Some features may be limited.
+                      Perplexity API key not configured (for future use)
                     </div>
                   )}
                 </div>

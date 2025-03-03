@@ -278,7 +278,7 @@ export const DocumentProcessor = () => {
               <TabsList className="grid grid-cols-3 mb-6">
                 <TabsTrigger value="resize">
                   <span className="flex items-center gap-1">
-                    <Image className="h-4 w-4" />
+                    <ImageIcon className="h-4 w-4" />
                     Resize
                   </span>
                 </TabsTrigger>
