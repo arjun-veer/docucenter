@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminSearchExams from "@/components/admin/AdminSearchExams";
 import PendingExamsList from "@/components/admin/PendingExamsList";
+import ManualExamForm from "@/components/admin/ManualExamForm";
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentUser } = useAuth();
@@ -43,13 +44,18 @@ const AdminDashboard = () => {
           </div>
           
           <Tabs defaultValue="search" onValueChange={handleTabChange}>
-            <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsList className="grid w-full grid-cols-3 mb-8">
               <TabsTrigger value="search">Search New Exams</TabsTrigger>
+              <TabsTrigger value="manual">Add Manually</TabsTrigger>
               <TabsTrigger value="pending">Pending Exams</TabsTrigger>
             </TabsList>
             
             <TabsContent value="search" className="space-y-6">
               <AdminSearchExams serpApiKey={serpApiKey} />
+            </TabsContent>
+            
+            <TabsContent value="manual" className="space-y-6">
+              <ManualExamForm />
             </TabsContent>
             
             <TabsContent value="pending" className="space-y-6">

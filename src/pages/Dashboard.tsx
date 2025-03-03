@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DocumentWallet } from "@/components/dashboard/DocumentWallet";
 import { ExamTracker } from "@/components/dashboard/ExamTracker";
+import { DocProcessorButton } from "@/components/dashboard/DocProcessorButton";
 import { useAuth } from "@/lib/store";
 import { Navigate } from "react-router-dom";
 
@@ -41,6 +42,7 @@ const Dashboard = () => {
             </TabsList>
             
             <TabsContent value="documents" className="space-y-4">
+              <DocProcessorButton />
               <DocumentWallet />
             </TabsContent>
             

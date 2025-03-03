@@ -1,4 +1,3 @@
-
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Exam } from './types';
@@ -12,6 +11,7 @@ type AuthState = {
     email: string;
     role: string;
     name?: string;
+    verified?: boolean; // Add verified property to fix type error
   } | null;
   login: (user: { id: string; email: string; role: string; name?: string }) => void;
   logout: () => void;
@@ -22,7 +22,7 @@ export const useAuth = create<AuthState>()(
     (set) => ({
       isAuthenticated: false,
       currentUser: null,
-      login: (user) => set({ isAuthenticated: true, currentUser: user }),
+      login: (user) => set({ isAuthenticated: true, currentUser: {...user, verified: true} }), // Set verified to true by default
       logout: () => set({ isAuthenticated: false, currentUser: null }),
     }),
     {

@@ -4,9 +4,15 @@ import { ExamCard } from "@/components/ui/ExamCard";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Calendar, Bell, BellOff } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Exam } from "@/lib/types";
 
 export const ExamTracker = () => {
-  const { subscribedExams, unsubscribeFromExam } = useExams();
+  const { subscribedExams, exams, unsubscribeFromExam } = useExams();
+
+  // Find the full exam objects for all subscribed exam IDs
+  const subscribedExamObjects = subscribedExams
+    .map(examId => exams.find(exam => exam.id === examId))
+    .filter(exam => exam !== undefined) as Exam[];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -17,9 +23,9 @@ export const ExamTracker = () => {
         </p>
       </div>
 
-      {subscribedExams.length > 0 ? (
+      {subscribedExamObjects.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subscribedExams.map((exam) => (
+          {subscribedExamObjects.map((exam) => (
             <ExamCard key={exam.id} exam={exam} />
           ))}
         </div>
@@ -40,11 +46,11 @@ export const ExamTracker = () => {
         </div>
       )}
 
-      {subscribedExams.length > 0 && (
+      {subscribedExamObjects.length > 0 && (
         <div className="mt-8">
           <h3 className="text-lg font-medium mb-4">Upcoming Deadlines</h3>
           <div className="space-y-4">
-            {subscribedExams
+            {subscribedExamObjects
               .sort((a, b) => {
                 // Sort by nearest registration end date first
                 const aDate = new Date(a.registrationEndDate);

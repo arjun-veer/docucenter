@@ -16,10 +16,11 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle, Key } from "lucide-react";
-import { useSettings } from "@/lib/store";
+import { AlertTriangle, CheckCircle, Key, Lock } from "lucide-react";
+import { useSettings, useAuth } from "@/lib/store";
 
 const Settings = () => {
+  const { isAuthenticated, currentUser } = useAuth();
   const { 
     perplexityApiKey, 
     setPerplexityApiKey,
@@ -33,11 +34,18 @@ const Settings = () => {
   const [perplexityKey, setPerplexityKey] = useState(perplexityApiKey || "");
   const [serpKey, setSerpKey] = useState(serpApiKey || "");
   
+  const isAdmin = currentUser?.role === 'admin';
+  
   const handleSavePreferences = () => {
     toast.success("Preferences saved successfully");
   };
   
   const handleSavePerplexityApiKey = () => {
+    if (!isAdmin) {
+      toast.error("Only administrators can set API keys");
+      return;
+    }
+    
     if (perplexityKey.trim()) {
       setPerplexityApiKey(perplexityKey.trim());
       toast.success("Perplexity API key saved successfully");
@@ -47,6 +55,11 @@ const Settings = () => {
   };
   
   const handleSaveSerpApiKey = () => {
+    if (!isAdmin) {
+      toast.error("Only administrators can set API keys");
+      return;
+    }
+    
     if (serpKey.trim()) {
       setSerpApiKey(serpKey.trim());
       toast.success("SerpAPI key saved successfully");
@@ -139,86 +152,108 @@ const Settings = () => {
               </CardFooter>
             </Card>
             
-            {/* API Integrations */}
-            <Card>
-              <CardHeader>
-                <CardTitle>API Integrations</CardTitle>
-                <CardDescription>
-                  Configure third-party API keys for enhanced functionality
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* SerpAPI Key */}
-                <div>
-                  <Label htmlFor="serp-api">SerpAPI Key</Label>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Used to search and fetch exam information from the web
-                  </p>
-                  
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="serp-api"
-                        type="password"
-                        placeholder="Enter your SerpAPI key"
-                        className="pl-10"
-                        value={serpKey}
-                        onChange={(e) => setSerpKey(e.target.value)}
-                      />
+            {/* API Integrations - Only visible to admins */}
+            {isAdmin ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>API Integrations</CardTitle>
+                  <CardDescription>
+                    Configure third-party API keys for enhanced functionality
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* SerpAPI Key */}
+                  <div>
+                    <Label htmlFor="serp-api">SerpAPI Key</Label>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Used to search and fetch exam information from the web
+                    </p>
+                    
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="serp-api"
+                          type="password"
+                          placeholder="Enter your SerpAPI key"
+                          className="pl-10"
+                          value={serpKey}
+                          onChange={(e) => setSerpKey(e.target.value)}
+                        />
+                      </div>
+                      <Button onClick={handleSaveSerpApiKey}>Save Key</Button>
                     </div>
-                    <Button onClick={handleSaveSerpApiKey}>Save Key</Button>
+                    
+                    {serpApiKey ? (
+                      <div className="mt-2 flex items-center text-sm text-green-600">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        SerpAPI key configured
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex items-center text-sm text-amber-600">
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        SerpAPI key not configured. Exam search functionality will be limited.
+                      </div>
+                    )}
                   </div>
                   
-                  {serpApiKey ? (
-                    <div className="mt-2 flex items-center text-sm text-green-600">
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      SerpAPI key configured
+                  {/* Perplexity AI Key (Saved for future use) */}
+                  <div>
+                    <Label htmlFor="perplexity-api">Perplexity AI API Key</Label>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Used to automatically fetch exam information from the web (for future use)
+                    </p>
+                    
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="perplexity-api"
+                          type="password"
+                          placeholder="Enter your Perplexity API key"
+                          className="pl-10"
+                          value={perplexityKey}
+                          onChange={(e) => setPerplexityKey(e.target.value)}
+                        />
+                      </div>
+                      <Button onClick={handleSavePerplexityApiKey}>Save Key</Button>
                     </div>
-                  ) : (
-                    <div className="mt-2 flex items-center text-sm text-amber-600">
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                      SerpAPI key not configured. Exam search functionality will be limited.
-                    </div>
-                  )}
-                </div>
-                
-                {/* Perplexity AI Key (Saved for future use) */}
-                <div>
-                  <Label htmlFor="perplexity-api">Perplexity AI API Key</Label>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Used to automatically fetch exam information from the web (for future use)
-                  </p>
-                  
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="perplexity-api"
-                        type="password"
-                        placeholder="Enter your Perplexity API key"
-                        className="pl-10"
-                        value={perplexityKey}
-                        onChange={(e) => setPerplexityKey(e.target.value)}
-                      />
-                    </div>
-                    <Button onClick={handleSavePerplexityApiKey}>Save Key</Button>
+                    
+                    {perplexityApiKey ? (
+                      <div className="mt-2 flex items-center text-sm text-green-600">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Perplexity API key configured (for future use)
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex items-center text-sm text-amber-600">
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Perplexity API key not configured (for future use)
+                      </div>
+                    )}
                   </div>
-                  
-                  {perplexityApiKey ? (
-                    <div className="mt-2 flex items-center text-sm text-green-600">
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Perplexity API key configured (for future use)
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>API Integrations</CardTitle>
+                  <CardDescription>
+                    Administrator-only section
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="py-8">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <div className="rounded-full bg-muted p-3 mb-3">
+                      <Lock className="h-6 w-6 text-muted-foreground" />
                     </div>
-                  ) : (
-                    <div className="mt-2 flex items-center text-sm text-amber-600">
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                      Perplexity API key not configured (for future use)
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    <h3 className="text-lg font-medium mb-1">Admin Only</h3>
+                    <p className="text-muted-foreground max-w-sm">
+                      API key configuration is restricted to administrators only. Please contact an administrator if you need access.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </main>
