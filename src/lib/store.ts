@@ -11,8 +11,9 @@ type AuthState = {
     id: string;
     email: string;
     role: string;
+    name?: string;
   } | null;
-  login: (user: { id: string; email: string; role: string }) => void;
+  login: (user: { id: string; email: string; role: string; name?: string }) => void;
   logout: () => void;
 };
 

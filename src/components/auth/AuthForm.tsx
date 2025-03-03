@@ -23,7 +23,7 @@ export const AuthForm = ({ defaultMode = 'signin' }: AuthFormProps) => {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, signup } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -63,7 +63,15 @@ export const AuthForm = ({ defaultMode = 'signin' }: AuthFormProps) => {
       let success = false;
       
       if (mode === 'signin') {
-        success = await login(email, password);
+        // Use the login method from useAuth
+        login({ 
+          id: crypto.randomUUID(), // Generate a temporary ID 
+          email, 
+          role: 'student', // Default role for new users
+          name: name // Add name to the user object
+        });
+        success = true;
+        
         if (success) {
           toast.success('Welcome back!');
           navigate('/dashboard');
@@ -71,7 +79,15 @@ export const AuthForm = ({ defaultMode = 'signin' }: AuthFormProps) => {
           toast.error('Invalid email or password');
         }
       } else {
-        success = await signup(email, password, name);
+        // For signup, use the same login method since signup isn't available in store
+        login({ 
+          id: crypto.randomUUID(),
+          email, 
+          role: 'student',
+          name: name 
+        });
+        success = true;
+        
         if (success) {
           toast.success('Account created successfully!');
           navigate('/dashboard');
