@@ -1,6 +1,8 @@
+
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Exam } from './types';
+import { supabase } from './supabase';
 
 // Auth store for user authentication state
 type AuthState = {
@@ -31,6 +33,8 @@ export const useAuth = create<AuthState>()(
 // Exams store for managing exam subscriptions
 type ExamsState = {
   subscribedExams: string[];
+  exams: Exam[];
+  fetchExams: () => Promise<void>;
   subscribeToExam: (examId: string) => void;
   unsubscribeFromExam: (examId: string) => void;
 };
@@ -39,6 +43,36 @@ export const useExams = create<ExamsState>()(
   persist(
     (set) => ({
       subscribedExams: [],
+      exams: [],
+      fetchExams: async () => {
+        try {
+          const { data, error } = await supabase
+            .from('exams')
+            .select('*');
+            
+          if (error) throw error;
+          
+          // Transform the data to match the Exam type
+          const transformedExams = data.map((exam: any) => ({
+            id: exam.id,
+            name: exam.name,
+            category: exam.category,
+            registrationStartDate: new Date(exam.registration_start_date),
+            registrationEndDate: new Date(exam.registration_end_date),
+            examDate: exam.exam_date ? new Date(exam.exam_date) : undefined,
+            resultDate: exam.result_date ? new Date(exam.result_date) : undefined,
+            websiteUrl: exam.website_url,
+            description: exam.description,
+            eligibility: exam.eligibility,
+            applicationFee: exam.application_fee,
+          }));
+          
+          set({ exams: transformedExams });
+        } catch (error) {
+          console.error('Error fetching exams:', error);
+          throw error;
+        }
+      },
       subscribeToExam: (examId) =>
         set((state) => ({
           subscribedExams: [...state.subscribedExams, examId],

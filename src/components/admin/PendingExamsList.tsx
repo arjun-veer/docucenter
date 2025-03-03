@@ -1,0 +1,129 @@
+
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import ExamCard from "./ExamCard";
+
+interface PendingExam {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  registration_start_date: string;
+  registration_end_date: string;
+  exam_date: string | null;
+  result_date: string | null;
+  answer_key_date: string | null;
+  website_url: string;
+  eligibility: string | null;
+  application_fee: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at: string;
+}
+
+const PendingExamsList = () => {
+  const [pendingExams, setPendingExams] = useState<PendingExam[]>([]);
+
+  const fetchPendingExams = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pending_exams')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setPendingExams(data || []);
+    } catch (error) {
+      console.error('Error fetching pending exams:', error);
+      toast.error('Failed to load pending exams');
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingExams();
+  }, []);
+
+  const approveExam = async (pendingExam: PendingExam) => {
+    try {
+      // First update the pending exam status
+      const { error: updateError } = await supabase
+        .from('pending_exams')
+        .update({ status: 'approved' })
+        .eq('id', pendingExam.id);
+      
+      if (updateError) throw updateError;
+      
+      // Then add it to the main exams table
+      const { error: insertError } = await supabase.from('exams').insert({
+        name: pendingExam.name,
+        category: pendingExam.category,
+        description: pendingExam.description,
+        registration_start_date: pendingExam.registration_start_date,
+        registration_end_date: pendingExam.registration_end_date,
+        exam_date: pendingExam.exam_date,
+        result_date: pendingExam.result_date,
+        answer_key_date: pendingExam.answer_key_date,
+        website_url: pendingExam.website_url,
+        eligibility: pendingExam.eligibility,
+        application_fee: pendingExam.application_fee,
+        is_verified: true
+      });
+      
+      if (insertError) throw insertError;
+      
+      toast.success('Exam approved and added to the database');
+      fetchPendingExams();
+    } catch (error: any) {
+      console.error('Error approving exam:', error);
+      toast.error(`Failed to approve exam: ${error.message}`);
+    }
+  };
+
+  const rejectExam = async (pendingExamId: string) => {
+    try {
+      const { error } = await supabase
+        .from('pending_exams')
+        .update({ status: 'rejected' })
+        .eq('id', pendingExamId);
+      
+      if (error) throw error;
+      
+      toast.success('Exam rejected');
+      fetchPendingExams();
+    } catch (error: any) {
+      console.error('Error rejecting exam:', error);
+      toast.error(`Failed to reject exam: ${error.message}`);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {pendingExams.length === 0 ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="text-center text-muted-foreground">
+              No pending exams to review
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Pending Exams for Review</h2>
+          
+          {pendingExams.map((exam) => (
+            <ExamCard 
+              key={exam.id} 
+              exam={exam} 
+              onApprove={approveExam} 
+              onReject={rejectExam}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default PendingExamsList;
