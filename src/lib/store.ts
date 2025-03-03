@@ -1,3 +1,4 @@
+
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Exam } from './types';
@@ -42,18 +43,28 @@ type ExamsState = {
 
 export const useExams = create<ExamsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       subscribedExams: [],
       exams: [],
       fetchExams: async () => {
         try {
+          // Fetch exams from Supabase
           const { data, error } = await supabase
             .from('exams')
             .select('*');
             
-          if (error) throw error;
+          if (error) {
+            console.error('Error fetching exams:', error);
+            throw error;
+          }
+          
+          if (!data) {
+            console.log('No exam data returned');
+            return;
+          }
           
           // Transform the data to match the Exam type
+          const subscribedExams = get().subscribedExams;
           const transformedExams = data.map((exam: any) => ({
             id: exam.id,
             name: exam.name,
@@ -66,8 +77,10 @@ export const useExams = create<ExamsState>()(
             description: exam.description,
             eligibility: exam.eligibility,
             applicationFee: exam.application_fee,
+            isSubscribed: subscribedExams.includes(exam.id),
           }));
           
+          console.log('Fetched exams:', transformedExams);
           set({ exams: transformedExams });
         } catch (error) {
           console.error('Error fetching exams:', error);
@@ -75,13 +88,31 @@ export const useExams = create<ExamsState>()(
         }
       },
       subscribeToExam: (examId) =>
-        set((state) => ({
-          subscribedExams: [...state.subscribedExams, examId],
-        })),
+        set((state) => {
+          const updatedSubscribedExams = [...state.subscribedExams, examId];
+          // Update the isSubscribed property in the exams array
+          const updatedExams = state.exams.map(exam => 
+            exam.id === examId ? { ...exam, isSubscribed: true } : exam
+          );
+          
+          return {
+            subscribedExams: updatedSubscribedExams,
+            exams: updatedExams,
+          };
+        }),
       unsubscribeFromExam: (examId) =>
-        set((state) => ({
-          subscribedExams: state.subscribedExams.filter((id) => id !== examId),
-        })),
+        set((state) => {
+          const updatedSubscribedExams = state.subscribedExams.filter(id => id !== examId);
+          // Update the isSubscribed property in the exams array
+          const updatedExams = state.exams.map(exam => 
+            exam.id === examId ? { ...exam, isSubscribed: false } : exam
+          );
+          
+          return {
+            subscribedExams: updatedSubscribedExams,
+            exams: updatedExams,
+          };
+        }),
     }),
     {
       name: 'exams',

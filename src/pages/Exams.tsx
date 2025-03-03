@@ -8,16 +8,36 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useExams, useAuth } from "@/lib/store";
 import { PlusIcon } from "lucide-react";
+import { ExamCard } from "@/components/ui/ExamCard";
+import { toast } from "sonner";
 
-// Update the Exams component to include a button to go to the Admin Dashboard
 const Exams = () => {
-  const { exams, subscribedExams, subscribeToExam, unsubscribeFromExam } = useExams();
+  const { exams, fetchExams, subscribedExams } = useExams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filteredExams, setFilteredExams] = useState(exams);
+  const [loading, setLoading] = useState(true);
 
+  // Fetch exams on component mount
+  useEffect(() => {
+    const loadExams = async () => {
+      try {
+        setLoading(true);
+        await fetchExams();
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to load exams:', error);
+        toast.error('Failed to load exams. Please try again.');
+        setLoading(false);
+      }
+    };
+    
+    loadExams();
+  }, [fetchExams]);
+
+  // Filter exams whenever exams, categoryFilter, or searchTerm changes
   useEffect(() => {
     let filtered = exams;
 
@@ -42,15 +62,6 @@ const Exams = () => {
     setSearchTerm(term);
   };
 
-  const subscribe = (examId: string) => {
-    subscribeToExam(examId);
-  };
-
-  const unsubscribe = (examId: string) => {
-    unsubscribeFromExam(examId);
-  };
-
-  // Inside the main content area, after the title and description
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -82,9 +93,9 @@ const Exams = () => {
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
             />
-            <Select onValueChange={handleCategoryChange}>
+            <Select onValueChange={handleCategoryChange} defaultValue={categoryFilter}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by Category" defaultValue={categoryFilter} />
+                <SelectValue placeholder="Filter by Category" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Categories</SelectItem>
@@ -100,64 +111,21 @@ const Exams = () => {
             </Select>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredExams.map((exam) => (
-              <div key={exam.id} className="bg-card rounded-lg border shadow-sm overflow-hidden">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold">{exam.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{exam.category}</p>
-                  
-                  <div className="mt-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Registration:</span>
-                      <span className="font-medium">
-                        {new Date(exam.registrationStartDate).toLocaleDateString()} - 
-                        {new Date(exam.registrationEndDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    
-                    {exam.examDate && (
-                      <div className="flex justify-between text-sm">
-                        <span>Exam Date:</span>
-                        <span className="font-medium">{new Date(exam.examDate).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                    
-                    {exam.resultDate && (
-                      <div className="flex justify-between text-sm">
-                        <span>Results:</span>
-                        <span className="font-medium">{new Date(exam.resultDate).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-6 flex justify-between items-center">
-                    <Button variant="outline" size="sm" onClick={() => navigate(`/exams/${exam.id}`)}>
-                      View Details
-                    </Button>
-                    
-                    {exam.isSubscribed ? (
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => unsubscribe(exam.id)}
-                      >
-                        Unsubscribe
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="default" 
-                        size="sm"
-                        onClick={() => subscribe(exam.id)}
-                      >
-                        Subscribe
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="py-12 text-center">
+              <p className="text-muted-foreground">Loading exams...</p>
+            </div>
+          ) : filteredExams.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-muted-foreground">No exams found. Try changing your filters.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredExams.map((exam) => (
+                <ExamCard key={exam.id} exam={exam} />
+              ))}
+            </div>
+          )}
         </div>
       </main>
       
