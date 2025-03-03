@@ -53,7 +53,7 @@ const AdminDashboard = () => {
     return null;
   }
 
-  if (currentUser?.role !== "admin" && currentUser?.role !== "admin") {
+  if (currentUser?.role !== "admin") {
     navigate("/dashboard");
     return null;
   }

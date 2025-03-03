@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { resizeImage, cropImage, convertImageFormat, validateFile, formatFileSize, SUPPORTED_IMAGE_TYPES } from '@/lib/fileUtils';
-import { Upload, Image, CropIcon, FileType, Save, RefreshCw, Trash } from 'lucide-react';
+import { Upload, Image as ImageIcon, CropIcon, FileType, Save, RefreshCw, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const DocumentProcessor = () => {
@@ -62,7 +62,7 @@ export const DocumentProcessor = () => {
     setProcessedPreviewUrl(null);
     
     // Set default crop dimensions based on image
-    const img = new Image();
+    const img = new window.Image();
     img.onload = () => {
       setCropWidth(Math.min(300, img.width));
       setCropHeight(Math.min(300, img.height));
