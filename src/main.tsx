@@ -1,35 +1,31 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { ThemeProvider } from '@/components/theme-provider';
-import { useSettings } from '@/lib/stores';
+import { Toaster } from '@/components/ui/sonner';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Create our DarkModeInitializer component
-const DarkModeInitializer = () => {
-  const { darkMode } = useSettings();
-  
-  useEffect(() => {
-    // Apply the dark mode setting when the component mounts
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
-  
-  return null;
-};
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ThemeProvider defaultTheme="light" storageKey="app-theme">
-      <BrowserRouter>
-        <DarkModeInitializer />
-        <App />
-      </BrowserRouter>
+    <ThemeProvider defaultTheme="system" storageKey="app-theme">
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <App />
+          <Toaster />
+        </BrowserRouter>
+      </QueryClientProvider>
     </ThemeProvider>
   </React.StrictMode>
 );

@@ -8,6 +8,8 @@ import { supabase } from '../supabase';
 type ExamsState = {
   subscribedExams: string[];
   exams: Exam[];
+  isLoading: boolean;
+  error: string | null;
   fetchExams: () => Promise<void>;
   subscribeToExam: (examId: string) => void;
   unsubscribeFromExam: (examId: string) => void;
@@ -18,8 +20,13 @@ export const useExams = create<ExamsState>()(
     (set, get) => ({
       subscribedExams: [],
       exams: [],
+      isLoading: false,
+      error: null,
       fetchExams: async () => {
         try {
+          console.log('Fetching exams...');
+          set({ isLoading: true, error: null });
+          
           // Use .from() directly with error handling but avoid using status code checks
           const { data, error } = await supabase
             .from('exams')
@@ -27,13 +34,17 @@ export const useExams = create<ExamsState>()(
             
           if (error) {
             console.error('Error fetching exams:', error);
+            set({ isLoading: false, error: error.message });
             throw error;
           }
           
           if (!data) {
             console.log('No exam data returned');
+            set({ isLoading: false, exams: [] });
             return;
           }
+          
+          console.log('Fetched raw exam data:', data);
           
           // Transform the data to match the Exam type
           const subscribedExams = get().subscribedExams;
@@ -52,11 +63,11 @@ export const useExams = create<ExamsState>()(
             isSubscribed: subscribedExams.includes(exam.id),
           }));
           
-          console.log('Fetched exams:', transformedExams);
-          set({ exams: transformedExams });
-        } catch (error) {
+          console.log('Transformed exams:', transformedExams);
+          set({ exams: transformedExams, isLoading: false });
+        } catch (error: any) {
           console.error('Error in fetchExams:', error);
-          throw error;
+          set({ isLoading: false, error: error.message });
         }
       },
       subscribeToExam: (examId) =>

@@ -3,7 +3,7 @@ import { UserDocument } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, File, FileText, Image, Trash2 } from "lucide-react";
-import { useDocuments } from "@/lib/store";
+import { useDocuments } from "@/lib/stores";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -14,14 +14,29 @@ interface DocumentCardProps {
 export const DocumentCard = ({ document }: DocumentCardProps) => {
   const { deleteDocument } = useDocuments();
   
-  const handleDelete = () => {
-    deleteDocument(document.id);
-    toast.success("Document deleted successfully");
+  const handleDelete = async () => {
+    try {
+      await deleteDocument(document.id);
+      toast.success("Document deleted successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete document");
+    }
   };
   
   const handleDownload = () => {
-    // In a real app, this would trigger a download
-    toast.success("Download started");
+    if (document.url) {
+      // Create an anchor element and trigger download
+      const link = document.createElement('a');
+      link.href = document.url;
+      link.download = document.fileName;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("Download started");
+    } else {
+      toast.error("Document URL not available");
+    }
   };
   
   // Determine icon based on file type
@@ -30,10 +45,12 @@ export const DocumentCard = ({ document }: DocumentCardProps) => {
       case 'pdf':
         return <File className="h-12 w-12 text-red-500" />;
       case 'docx':
+      case 'doc':
         return <FileText className="h-12 w-12 text-blue-500" />;
       case 'jpg':
       case 'jpeg':
       case 'png':
+      case 'webp':
         return <Image className="h-12 w-12 text-green-500" />;
       default:
         return <File className="h-12 w-12 text-gray-500" />;
@@ -52,8 +69,8 @@ export const DocumentCard = ({ document }: DocumentCardProps) => {
         <div className="flex justify-between items-center text-sm text-muted-foreground">
           <span className={cn("uppercase", {
             "text-red-500": document.fileType === 'pdf',
-            "text-blue-500": document.fileType === 'docx',
-            "text-green-500": ['jpg', 'jpeg', 'png'].includes(document.fileType),
+            "text-blue-500": document.fileType === 'docx' || document.fileType === 'doc',
+            "text-green-500": ['jpg', 'jpeg', 'png', 'webp'].includes(document.fileType),
           })}>
             {document.fileType}
           </span>

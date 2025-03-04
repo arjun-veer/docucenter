@@ -6,31 +6,28 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useExams, useAuth } from "@/lib/store";
+import { useExams, useAuth } from "@/lib/stores";
 import { PlusIcon } from "lucide-react";
 import { ExamCard } from "@/components/ui/ExamCard";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Exams = () => {
-  const { exams, fetchExams, subscribedExams } = useExams();
+  const { exams, fetchExams, isLoading, error } = useExams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filteredExams, setFilteredExams] = useState(exams);
-  const [loading, setLoading] = useState(true);
 
   // Fetch exams on component mount
   useEffect(() => {
     const loadExams = async () => {
       try {
-        setLoading(true);
         await fetchExams();
-        setLoading(false);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to load exams:', error);
         toast.error('Failed to load exams. Please try again.');
-        setLoading(false);
       }
     };
     
@@ -60,6 +57,11 @@ const Exams = () => {
 
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
+  };
+  
+  const handleRetry = () => {
+    fetchExams();
+    toast.info("Retrying exam data fetch...");
   };
 
   return (
@@ -111,9 +113,18 @@ const Exams = () => {
             </Select>
           </div>
           
-          {loading ? (
-            <div className="py-12 text-center">
-              <p className="text-muted-foreground">Loading exams...</p>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-[350px] w-full rounded-lg" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="py-12 text-center space-y-4">
+              <p className="text-muted-foreground">Could not load exam data: {error}</p>
+              <Button onClick={handleRetry} variant="outline">
+                Try Again
+              </Button>
             </div>
           ) : filteredExams.length === 0 ? (
             <div className="py-12 text-center">
