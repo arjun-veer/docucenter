@@ -11,12 +11,12 @@ interface DocumentCardProps {
   document: UserDocument;
 }
 
-export const DocumentCard = ({ document }: DocumentCardProps) => {
+export const DocumentCard = ({ document: userDocument }: DocumentCardProps) => {
   const { deleteDocument } = useDocuments();
   
   const handleDelete = async () => {
     try {
-      await deleteDocument(document.id);
+      await deleteDocument(userDocument.id);
       toast.success("Document deleted successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to delete document");
@@ -24,11 +24,11 @@ export const DocumentCard = ({ document }: DocumentCardProps) => {
   };
   
   const handleDownload = () => {
-    if (document.url) {
+    if (userDocument.url) {
       // Create an anchor element and trigger download
       const link = document.createElement('a');
-      link.href = document.url;
-      link.download = document.fileName;
+      link.href = userDocument.url;
+      link.download = userDocument.fileName;
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
@@ -41,7 +41,7 @@ export const DocumentCard = ({ document }: DocumentCardProps) => {
   
   // Determine icon based on file type
   const getFileIcon = () => {
-    const fileType = document.fileType.toLowerCase();
+    const fileType = userDocument.fileType.toLowerCase();
     
     if (fileType === 'pdf') {
       return <File className="h-12 w-12 text-red-500" />;
@@ -60,18 +60,18 @@ export const DocumentCard = ({ document }: DocumentCardProps) => {
         <div className="flex justify-center">{getFileIcon()}</div>
       </CardHeader>
       <CardContent className="p-4">
-        <CardTitle className="text-base font-medium truncate mb-1" title={document.fileName}>
-          {document.fileName}
+        <CardTitle className="text-base font-medium truncate mb-1" title={userDocument.fileName}>
+          {userDocument.fileName}
         </CardTitle>
         <div className="flex justify-between items-center text-sm text-muted-foreground">
           <span className={cn("uppercase", {
-            "text-red-500": document.fileType === 'pdf',
-            "text-blue-500": document.fileType === 'docx' || document.fileType === 'doc',
-            "text-green-500": ['jpg', 'jpeg', 'png', 'webp'].includes(document.fileType.toLowerCase()),
+            "text-red-500": userDocument.fileType === 'pdf',
+            "text-blue-500": userDocument.fileType === 'docx' || userDocument.fileType === 'doc',
+            "text-green-500": ['jpg', 'jpeg', 'png', 'webp'].includes(userDocument.fileType.toLowerCase()),
           })}>
-            {document.fileType}
+            {userDocument.fileType}
           </span>
-          <span>{document.fileSize} KB</span>
+          <span>{userDocument.fileSize} KB</span>
         </div>
       </CardContent>
       <CardFooter className="p-2 pt-0 flex justify-between">
