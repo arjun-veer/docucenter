@@ -1,4 +1,3 @@
-
 import { supabase } from './supabase';
 import { toast } from 'sonner';
 
@@ -8,6 +7,15 @@ import { toast } from 'sonner';
  */
 export const validateSupabaseConnection = async (): Promise<boolean> => {
   try {
+    // Ensure the user is authenticated
+    const { data: session, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      console.error('Supabase auth session error:', sessionError);
+      toast.error('Supabase authentication session error: ' + sessionError?.message);
+      return false;
+    }
+
     // Try to get the authenticated user
     const { data: userData, error: authError } = await supabase.auth.getUser();
     

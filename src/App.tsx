@@ -22,21 +22,21 @@ import { toast } from "sonner";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { fetchExams } = useExams();
+  // const { fetchExams } = useExams();
 
-  // Fetch initial data on app load
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        await fetchExams();
-      } catch (error) {
-        console.error("Failed to fetch initial exam data:", error);
-        toast.error("Could not load exam data. Please try again later.");
-      }
-    };
+  // // Fetch initial data on app load
+  // useEffect(() => {
+  //   const loadInitialData = async () => {
+  //     try {
+  //       await fetchExams();
+  //     } catch (error) {
+  //       console.error("Failed to fetch initial exam data:", error);
+  //       toast.error("Could not load exam data. Please try again later.");
+  //     }
+  //   };
     
-    loadInitialData();
-  }, [fetchExams]);
+  //   loadInitialData();
+  // }, [fetchExams]);
 
   return (
     <Routes>

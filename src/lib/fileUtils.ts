@@ -1,4 +1,3 @@
-
 // File size constants
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export const IMAGE_MAX_DIMENSION = 1600;
@@ -315,4 +314,13 @@ export const formatFileSize = (bytes: number): string => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+/**
+ * Compress a PDF file to a target size
+ */
+export const compressPdf = async (file: File, targetSizeBytes: number): Promise<File> => {
+  // Implement the logic to compress PDF file
+  // This is a placeholder implementation
+  return file;
 };

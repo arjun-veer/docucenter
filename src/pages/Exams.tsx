@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useExams, useAuth } from "@/lib/stores";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, RefreshCwIcon } from "lucide-react";
 import { ExamCard } from "@/components/ui/ExamCard";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,19 +19,32 @@ const Exams = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filteredExams, setFilteredExams] = useState(exams);
 
-  // Fetch exams on component mount
+  // Fetch exams on component mount or from local storage
   useEffect(() => {
     const loadExams = async () => {
-      try {
-        await fetchExams();
-      } catch (error: any) {
-        console.error('Failed to load exams:', error);
-        toast.error('Failed to load exams. Please try again.');
+      const storedExams = localStorage.getItem('exams');
+      if (storedExams) {
+        setFilteredExams(JSON.parse(storedExams));
+      } else {
+        try {
+          await fetchExams();
+        } catch (error: any) {
+          console.error('Failed to load exams:', error);
+          toast.error('Failed to load exams. Please try again.');
+        }
       }
     };
     
     loadExams();
   }, [fetchExams]);
+
+  // Store exams in local storage whenever exams change
+  useEffect(() => {
+    if (exams.length > 0) {
+      localStorage.setItem('exams', JSON.stringify(exams));
+      setFilteredExams(exams);
+    }
+  }, [exams]);
 
   // Filter exams whenever exams, categoryFilter, or searchTerm changes
   useEffect(() => {
@@ -59,9 +71,14 @@ const Exams = () => {
     setSearchTerm(term);
   };
   
-  const handleRetry = () => {
-    fetchExams();
-    toast.info("Retrying exam data fetch...");
+  const handleRefresh = async () => {
+    try {
+      await fetchExams();
+      toast.info("Exam data refreshed.");
+    } catch (error: any) {
+      console.error('Failed to refresh exams:', error);
+      toast.error('Failed to refresh exams. Please try again.');
+    }
   };
 
   return (
@@ -79,12 +96,18 @@ const Exams = () => {
                 </p>
               </div>
               
-              {currentUser?.role === 'admin' && (
-                <Button onClick={() => navigate('/admin')} className="flex items-center gap-1">
-                  <PlusIcon className="h-4 w-4" />
-                  Add New Exams
+              <div className="flex items-center space-x-4">
+                {currentUser?.role === 'admin' && (
+                  <Button onClick={() => navigate('/admin')} className="flex items-center gap-1">
+                    <PlusIcon className="h-4 w-4" />
+                    Add New Exams
+                  </Button>
+                )}
+                <Button onClick={handleRefresh} className="flex items-center gap-1">
+                  <RefreshCwIcon className="h-4 w-4" />
+                  Refresh
                 </Button>
-              )}
+              </div>
             </div>
           </div>
           
@@ -122,7 +145,7 @@ const Exams = () => {
           ) : error ? (
             <div className="py-12 text-center space-y-4">
               <p className="text-muted-foreground">Could not load exam data: {error}</p>
-              <Button onClick={handleRetry} variant="outline">
+              <Button onClick={handleRefresh} variant="outline">
                 Try Again
               </Button>
             </div>

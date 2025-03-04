@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { resizeImage, cropImage, convertImageFormat, validateFile, formatFileSize, SUPPORTED_IMAGE_TYPES } from '@/lib/fileUtils';
 import { Upload, Image as ImageIcon, CropIcon, FileType, Save, RefreshCw, Trash, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import Cropper from 'react-easy-crop';
 
 export const DocumentProcessor = () => {
   const { uploadDocument } = useDocuments();
@@ -29,10 +30,9 @@ export const DocumentProcessor = () => {
   const [convertQuality, setConvertQuality] = useState(80);
   
   // Crop settings
-  const [cropX, setCropX] = useState(0);
-  const [cropY, setCropY] = useState(0);
-  const [cropWidth, setCropWidth] = useState(300);
-  const [cropHeight, setCropHeight] = useState(300);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   
   // Size reduction settings
   const [targetSizeKB, setTargetSizeKB] = useState(500); // Default target size: 500KB
@@ -69,16 +69,6 @@ export const DocumentProcessor = () => {
     // Reset processed state
     setProcessedFile(null);
     setProcessedPreviewUrl(null);
-    
-    // Set default crop dimensions based on image
-    if (SUPPORTED_IMAGE_TYPES.includes(file.type)) {
-      const img = new window.Image();
-      img.onload = () => {
-        setCropWidth(Math.min(300, img.width));
-        setCropHeight(Math.min(300, img.height));
-      };
-      img.src = url;
-    }
   };
   
   const handleResize = async () => {
@@ -226,11 +216,7 @@ export const DocumentProcessor = () => {
     
     setIsProcessing(true);
     try {
-      const cropped = await cropImage(
-        selectedFile, 
-        { x: cropX, y: cropY, width: cropWidth, height: cropHeight }, 
-        0.9
-      );
+      const cropped = await cropImage(selectedFile, croppedAreaPixels, 0.9);
       setProcessedFile(cropped);
       
       // Create preview URL
@@ -291,6 +277,10 @@ export const DocumentProcessor = () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+  
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
   };
   
   return (
@@ -416,9 +406,9 @@ export const DocumentProcessor = () => {
                     <div className="flex items-center gap-2">
                       <Slider 
                         value={[targetSizeKB]} 
-                        min={100} 
+                        min={2} 
                         max={2000} 
-                        step={100}
+                        step={10}
                         onValueChange={(value) => setTargetSizeKB(value[0])}
                         className="flex-1"
                       />
@@ -505,73 +495,17 @@ export const DocumentProcessor = () => {
               
               <TabsContent value="crop" className="space-y-4">
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">X Position</label>
-                      <div className="flex items-center gap-2">
-                        <Slider 
-                          value={[cropX]} 
-                          min={0} 
-                          max={1000} 
-                          step={10}
-                          onValueChange={(value) => setCropX(value[0])}
-                          className="flex-1"
-                        />
-                        <span className="text-sm w-12 text-right">{cropX}px</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Y Position</label>
-                      <div className="flex items-center gap-2">
-                        <Slider 
-                          value={[cropY]} 
-                          min={0} 
-                          max={1000} 
-                          step={10}
-                          onValueChange={(value) => setCropY(value[0])}
-                          className="flex-1"
-                        />
-                        <span className="text-sm w-12 text-right">{cropY}px</span>
-                      </div>
-                    </div>
+                  <div className="relative w-full h-64 bg-gray-200 dark:bg-gray-800">
+                    <Cropper
+                      image={previewUrl}
+                      crop={crop}
+                      zoom={zoom}
+                      aspect={4 / 3}
+                      onCropChange={setCrop}
+                      onZoomChange={setZoom}
+                      onCropComplete={onCropComplete}
+                    />
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Width</label>
-                      <div className="flex items-center gap-2">
-                        <Slider 
-                          value={[cropWidth]} 
-                          min={50} 
-                          max={1000} 
-                          step={10}
-                          onValueChange={(value) => setCropWidth(value[0])}
-                          className="flex-1"
-                        />
-                        <span className="text-sm w-12 text-right">{cropWidth}px</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Height</label>
-                      <div className="flex items-center gap-2">
-                        <Slider 
-                          value={[cropHeight]} 
-                          min={50} 
-                          max={1000} 
-                          step={10}
-                          onValueChange={(value) => setCropHeight(value[0])}
-                          className="flex-1"
-                        />
-                        <span className="text-sm w-12 text-right">{cropHeight}px</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground italic">
-                    Note: For a production app, a visual crop tool would be implemented here.
-                  </p>
                   
                   <Button 
                     onClick={handleCrop} 

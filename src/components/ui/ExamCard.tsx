@@ -1,4 +1,3 @@
-
 import { CalendarIcon, ClockIcon, ExternalLinkIcon, BellIcon, BellOffIcon } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { Exam } from '@/lib/types';
@@ -20,17 +19,16 @@ interface ExamCardProps {
   exam: Exam;
 }
 
+const formatDate = (date: Date) => {
+  return date.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+};
+
 export const ExamCard = ({ exam }: ExamCardProps) => {
   const { subscribeToExam, unsubscribeFromExam } = useExams();
-  
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return 'TBA';
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
   
   const getDaysRemaining = (date: Date | undefined) => {
     if (!date) return null;
@@ -42,35 +40,35 @@ export const ExamCard = ({ exam }: ExamCardProps) => {
   const getNextImportantDate = () => {
     const now = new Date();
     
-    if (exam.registrationStartDate > now) {
+    if (new Date(exam.registrationStartDate) > now) {
       return {
         label: 'Registration Opens',
-        date: exam.registrationStartDate,
-        remaining: getDaysRemaining(exam.registrationStartDate)
+        date: new Date(exam.registrationStartDate),
+        remaining: getDaysRemaining(new Date(exam.registrationStartDate))
       };
     }
     
-    if (exam.registrationEndDate > now) {
+    if (new Date(exam.registrationEndDate) > now) {
       return {
         label: 'Registration Closes',
-        date: exam.registrationEndDate,
-        remaining: getDaysRemaining(exam.registrationEndDate)
+        date: new Date(exam.registrationEndDate),
+        remaining: getDaysRemaining(new Date(exam.registrationEndDate))
       };
     }
     
-    if (exam.examDate && exam.examDate > now) {
+    if (exam.examDate && new Date(exam.examDate) > now) {
       return {
         label: 'Exam Date',
-        date: exam.examDate,
-        remaining: getDaysRemaining(exam.examDate)
+        date: new Date(exam.examDate),
+        remaining: getDaysRemaining(new Date(exam.examDate))
       };
     }
     
-    if (exam.resultDate && exam.resultDate > now) {
+    if (exam.resultDate && new Date(exam.resultDate) > now) {
       return {
         label: 'Result Date',
-        date: exam.resultDate,
-        remaining: getDaysRemaining(exam.resultDate)
+        date: new Date(exam.resultDate),
+        remaining: getDaysRemaining(new Date(exam.resultDate))
       };
     }
     
@@ -125,7 +123,7 @@ export const ExamCard = ({ exam }: ExamCardProps) => {
               <CalendarIcon className="h-4 w-4 text-muted-foreground" />
               <span>Registration:</span>
             </div>
-            <span>{formatDate(exam.registrationStartDate)}</span>
+            <span>{formatDate(new Date(exam.registrationStartDate))}</span>
             
             {exam.examDate && (
               <>
@@ -133,7 +131,7 @@ export const ExamCard = ({ exam }: ExamCardProps) => {
                   <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                   <span>Exam Date:</span>
                 </div>
-                <span>{formatDate(exam.examDate)}</span>
+                <span>{formatDate(new Date(exam.examDate))}</span>
               </>
             )}
             
@@ -143,7 +141,7 @@ export const ExamCard = ({ exam }: ExamCardProps) => {
                   <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                   <span>Result:</span>
                 </div>
-                <span>{formatDate(exam.resultDate)}</span>
+                <span>{formatDate(new Date(exam.resultDate))}</span>
               </>
             )}
           </div>
