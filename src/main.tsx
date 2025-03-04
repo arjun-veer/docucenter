@@ -5,7 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { ThemeProvider } from '@/components/theme-provider';
-import { useSettings } from '@/lib/store';
+import { useSettings } from '@/lib/stores';
 
 // Create our DarkModeInitializer component
 const DarkModeInitializer = () => {
