@@ -12,7 +12,7 @@ type AuthState = {
     email: string;
     role: string;
     name?: string;
-    verified?: boolean; // Add verified property to fix type error
+    verified?: boolean;
   } | null;
   login: (user: { id: string; email: string; role: string; name?: string }) => void;
   logout: () => void;
@@ -23,7 +23,7 @@ export const useAuth = create<AuthState>()(
     (set) => ({
       isAuthenticated: false,
       currentUser: null,
-      login: (user) => set({ isAuthenticated: true, currentUser: {...user, verified: true} }), // Set verified to true by default
+      login: (user) => set({ isAuthenticated: true, currentUser: {...user, verified: true} }),
       logout: () => set({ isAuthenticated: false, currentUser: null }),
     }),
     {
@@ -48,7 +48,7 @@ export const useExams = create<ExamsState>()(
       exams: [],
       fetchExams: async () => {
         try {
-          // Fetch exams from Supabase
+          // Use .from() directly with error handling but avoid using status code checks
           const { data, error } = await supabase
             .from('exams')
             .select('*');
@@ -83,7 +83,7 @@ export const useExams = create<ExamsState>()(
           console.log('Fetched exams:', transformedExams);
           set({ exams: transformedExams });
         } catch (error) {
-          console.error('Error fetching exams:', error);
+          console.error('Error in fetchExams:', error);
           throw error;
         }
       },
@@ -183,8 +183,11 @@ export const useDocuments = create<DocumentsState>()(
 export type SettingsState = {
   perplexityApiKey: string | null;
   serpApiKey: string | null;
+  darkMode: boolean;
   setPerplexityApiKey: (key: string) => void;
   setSerpApiKey: (key: string) => void;
+  toggleDarkMode: () => void;
+  setDarkMode: (enabled: boolean) => void;
 };
 
 export const useSettings = create<SettingsState>()(
@@ -192,8 +195,11 @@ export const useSettings = create<SettingsState>()(
     (set) => ({
       perplexityApiKey: null,
       serpApiKey: null,
+      darkMode: false,
       setPerplexityApiKey: (key: string) => set({ perplexityApiKey: key }),
       setSerpApiKey: (key: string) => set({ serpApiKey: key }),
+      toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
+      setDarkMode: (enabled: boolean) => set({ darkMode: enabled }),
     }),
     {
       name: 'settings',

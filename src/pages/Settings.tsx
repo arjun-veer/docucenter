@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle, Key, Lock } from "lucide-react";
+import { AlertTriangle, CheckCircle, Key, Lock, Moon } from "lucide-react";
 import { useSettings, useAuth } from "@/lib/store";
 
 const Settings = () => {
@@ -25,19 +25,34 @@ const Settings = () => {
     perplexityApiKey, 
     setPerplexityApiKey,
     serpApiKey,
-    setSerpApiKey
+    setSerpApiKey,
+    darkMode,
+    setDarkMode
   } = useSettings();
   
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [perplexityKey, setPerplexityKey] = useState(perplexityApiKey || "");
   const [serpKey, setSerpKey] = useState(serpApiKey || "");
   
   const isAdmin = currentUser?.role === 'admin';
+
+  // Apply dark mode when it changes
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
   
   const handleSavePreferences = () => {
     toast.success("Preferences saved successfully");
+  };
+  
+  const handleToggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    toast.success(`${!darkMode ? "Dark" : "Light"} mode enabled`);
   };
   
   const handleSavePerplexityApiKey = () => {
@@ -80,6 +95,34 @@ const Settings = () => {
           </p>
           
           <div className="grid gap-8">
+            {/* Display Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Display Settings</CardTitle>
+                <CardDescription>
+                  Customize your application appearance
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="dark-mode">Dark Mode</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Switch between light and dark theme
+                    </p>
+                  </div>
+                  <Switch
+                    id="dark-mode"
+                    checked={darkMode}
+                    onCheckedChange={handleToggleDarkMode}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button onClick={handleSavePreferences}>Save Preferences</Button>
+              </CardFooter>
+            </Card>
+            
             {/* Notification Settings */}
             <Card>
               <CardHeader>
@@ -124,34 +167,6 @@ const Settings = () => {
               </CardFooter>
             </Card>
             
-            {/* Display Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Display Settings</CardTitle>
-                <CardDescription>
-                  Customize your application appearance
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="dark-mode">Dark Mode</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Switch between light and dark theme
-                    </p>
-                  </div>
-                  <Switch
-                    id="dark-mode"
-                    checked={darkMode}
-                    onCheckedChange={setDarkMode}
-                  />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button onClick={handleSavePreferences}>Save Preferences</Button>
-              </CardFooter>
-            </Card>
-            
             {/* API Integrations - Only visible to admins */}
             {isAdmin ? (
               <Card>
@@ -185,12 +200,12 @@ const Settings = () => {
                     </div>
                     
                     {serpApiKey ? (
-                      <div className="mt-2 flex items-center text-sm text-green-600">
+                      <div className="mt-2 flex items-center text-sm text-green-600 dark:text-green-400">
                         <CheckCircle className="h-4 w-4 mr-2" />
                         SerpAPI key configured
                       </div>
                     ) : (
-                      <div className="mt-2 flex items-center text-sm text-amber-600">
+                      <div className="mt-2 flex items-center text-sm text-amber-600 dark:text-amber-400">
                         <AlertTriangle className="h-4 w-4 mr-2" />
                         SerpAPI key not configured. Exam search functionality will be limited.
                       </div>
@@ -220,12 +235,12 @@ const Settings = () => {
                     </div>
                     
                     {perplexityApiKey ? (
-                      <div className="mt-2 flex items-center text-sm text-green-600">
+                      <div className="mt-2 flex items-center text-sm text-green-600 dark:text-green-400">
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Perplexity API key configured (for future use)
                       </div>
                     ) : (
-                      <div className="mt-2 flex items-center text-sm text-amber-600">
+                      <div className="mt-2 flex items-center text-sm text-amber-600 dark:text-amber-400">
                         <AlertTriangle className="h-4 w-4 mr-2" />
                         Perplexity API key not configured (for future use)
                       </div>
