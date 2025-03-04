@@ -39,13 +39,13 @@ export interface Exam {
   isSubscribed?: boolean;
 }
 
-export type DocumentType = 'pdf' | 'docx' | 'jpg' | 'jpeg' | 'png';
+export type DocumentType = 'pdf' | 'docx' | 'doc' | 'jpg' | 'jpeg' | 'png' | 'webp';
 
 export interface UserDocument {
   id: string;
-  userId: string;
+  userId?: string; // Make userId optional to match current implementation
   fileName: string;
-  fileType: DocumentType;
+  fileType: string; // Change to string to allow for more file types
   fileSize: number; // in KB
   url: string;
   createdAt: Date;

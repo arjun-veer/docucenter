@@ -44,6 +44,7 @@ export const useDocuments = create<DocumentsState>()(
           // Transform the data to match the UserDocument type
           const transformedDocs = data.map((doc: any) => ({
             id: doc.id,
+            userId: doc.user_id, // Include userId field
             fileName: doc.file_name,
             fileType: doc.file_type,
             fileSize: doc.file_size,
@@ -109,6 +110,7 @@ export const useDocuments = create<DocumentsState>()(
           // Add to local state
           const newDocument: UserDocument = {
             id: data.id,
+            userId: data.user_id, // Include userId field
             fileName: data.file_name,
             fileType: data.file_type,
             fileSize: data.file_size,

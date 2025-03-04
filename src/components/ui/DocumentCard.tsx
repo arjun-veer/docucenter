@@ -41,19 +41,16 @@ export const DocumentCard = ({ document }: DocumentCardProps) => {
   
   // Determine icon based on file type
   const getFileIcon = () => {
-    switch (document.fileType) {
-      case 'pdf':
-        return <File className="h-12 w-12 text-red-500" />;
-      case 'docx':
-      case 'doc':
-        return <FileText className="h-12 w-12 text-blue-500" />;
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'webp':
-        return <Image className="h-12 w-12 text-green-500" />;
-      default:
-        return <File className="h-12 w-12 text-gray-500" />;
+    const fileType = document.fileType.toLowerCase();
+    
+    if (fileType === 'pdf') {
+      return <File className="h-12 w-12 text-red-500" />;
+    } else if (fileType === 'docx' || fileType === 'doc') {
+      return <FileText className="h-12 w-12 text-blue-500" />;
+    } else if (['jpg', 'jpeg', 'png', 'webp'].includes(fileType)) {
+      return <Image className="h-12 w-12 text-green-500" />;
+    } else {
+      return <File className="h-12 w-12 text-gray-500" />;
     }
   };
   
@@ -70,7 +67,7 @@ export const DocumentCard = ({ document }: DocumentCardProps) => {
           <span className={cn("uppercase", {
             "text-red-500": document.fileType === 'pdf',
             "text-blue-500": document.fileType === 'docx' || document.fileType === 'doc',
-            "text-green-500": ['jpg', 'jpeg', 'png', 'webp'].includes(document.fileType),
+            "text-green-500": ['jpg', 'jpeg', 'png', 'webp'].includes(document.fileType.toLowerCase()),
           })}>
             {document.fileType}
           </span>
