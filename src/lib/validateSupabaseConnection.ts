@@ -9,11 +9,19 @@ import { toast } from 'sonner';
 export const validateSupabaseConnection = async (): Promise<boolean> => {
   try {
     // Try to get the authenticated user
-    const { data, error } = await supabase.auth.getUser();
+    const { data: userData, error: authError } = await supabase.auth.getUser();
     
-    if (error) {
-      console.error('Supabase auth error:', error);
-      toast.error('Supabase authentication error: ' + error.message);
+    if (authError) {
+      console.error('Supabase auth error:', authError);
+      toast.error('Supabase authentication error: ' + authError.message);
+      return false;
+    }
+
+    // For admin routes, verify admin access
+    const isAdmin = userData.user?.user_metadata?.role === 'admin';
+    if (window.location.pathname.includes('/admin') && !isAdmin) {
+      console.error('User is not an admin');
+      toast.error('You do not have admin privileges');
       return false;
     }
     
@@ -38,6 +46,20 @@ export const validateSupabaseConnection = async (): Promise<boolean> => {
       console.error('Supabase storage error:', storageError);
       toast.error('Supabase storage error: ' + storageError.message);
       return false;
+    }
+
+    // Check pending exams table access (admin-specific)
+    if (isAdmin) {
+      const { error: pendingError } = await supabase
+        .from('pending_exams')
+        .select('id')
+        .limit(1);
+
+      if (pendingError) {
+        console.error('Error accessing pending exams:', pendingError);
+        toast.error('Error accessing admin features: ' + pendingError.message);
+        return false;
+      }
     }
     
     // All checks passed

@@ -9,6 +9,60 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      exams: {
+        Row: {
+          answer_key_date: string | null
+          application_fee: string | null
+          category: string
+          created_at: string | null
+          description: string
+          eligibility: string | null
+          exam_date: string | null
+          id: string
+          is_verified: boolean | null
+          name: string
+          registration_end_date: string
+          registration_start_date: string
+          result_date: string | null
+          updated_at: string | null
+          website_url: string
+        }
+        Insert: {
+          answer_key_date?: string | null
+          application_fee?: string | null
+          category: string
+          created_at?: string | null
+          description: string
+          eligibility?: string | null
+          exam_date?: string | null
+          id?: string
+          is_verified?: boolean | null
+          name: string
+          registration_end_date: string
+          registration_start_date: string
+          result_date?: string | null
+          updated_at?: string | null
+          website_url: string
+        }
+        Update: {
+          answer_key_date?: string | null
+          application_fee?: string | null
+          category?: string
+          created_at?: string | null
+          description?: string
+          eligibility?: string | null
+          exam_date?: string | null
+          id?: string
+          is_verified?: boolean | null
+          name?: string
+          registration_end_date?: string
+          registration_start_date?: string
+          result_date?: string | null
+          updated_at?: string | null
+          website_url?: string
+        }
+        Relationships: []
+      }
       pending_exams: {
         Row: {
           answer_key_date: string | null
@@ -63,6 +117,68 @@ export type Database = {
         }
         Relationships: []
       }
+      user_documents: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_exam_subscriptions: {
+        Row: {
+          created_at: string | null
+          exam_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          exam_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          exam_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_exam_subscriptions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -71,7 +187,19 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      exam_category:
+        | "Engineering"
+        | "Medical"
+        | "Civil Services"
+        | "Banking"
+        | "Railways"
+        | "Defence"
+        | "Teaching"
+        | "State Services"
+        | "School Board"
+        | "Law"
+        | "Management"
+        | "Other"
     }
     CompositeTypes: {
       [_ in never]: never
