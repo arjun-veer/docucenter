@@ -10,7 +10,7 @@ type DocumentsState = {
   error: string | null;
   fetchDocuments: () => Promise<void>;
   uploadDocument: (file: File, category: string) => Promise<void>;
-  deleteDocument: (documentId: string) => void;
+  deleteDocument: (documentId: string) => Promise<void>;
 };
 
 export const useDocuments = create<DocumentsState>()(
