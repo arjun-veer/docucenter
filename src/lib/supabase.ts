@@ -1,14 +1,33 @@
+
 import { createClient } from '@supabase/supabase-js';
 
-// These environment variables need to be set in the production environment
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://example.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YW1wbGUiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYwMDAwMDAwMCwiZXhwIjoxNjAwMDAwMDAwfQ.example';
+// Get environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+// Provide fallback for development only
+const devFallbackUrl = 'https://example.supabase.co';
+const devFallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YW1wbGUiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYwMDAwMDAwMCwiZXhwIjoxNjAwMDAwMDAwfQ.example';
+
+// Use the environment variables if available, fallback for development only
+const url = supabaseUrl || (import.meta.env.DEV ? devFallbackUrl : '');
+const key = supabaseAnonKey || (import.meta.env.DEV ? devFallbackKey : '');
+
+// Check if we're in production and missing credentials
+if (import.meta.env.PROD && (!supabaseUrl || !supabaseAnonKey)) {
+  console.error('Supabase credentials missing in production environment. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+} else if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials missing. Using fallback values for development. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables for production.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create Supabase client with better error handling
+export const supabase = createClient(url, key, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
 
 // Database types
 export type Database = {

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useExams, useAuth } from "@/lib/stores";
-import { PlusIcon, RefreshCwIcon } from "lucide-react";
+import { PlusIcon, RefreshCwIcon, Search, FilterIcon } from "lucide-react";
 import { ExamCard } from "@/components/ui/ExamCard";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,7 @@ const Exams = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filteredExams, setFilteredExams] = useState(exams);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Fetch exams only once on component mount
   useEffect(() => {
@@ -28,6 +29,8 @@ const Exams = () => {
       } catch (error: any) {
         console.error('Failed to load exams:', error);
         toast.error('Failed to load exams. Please try again.');
+      } finally {
+        setIsInitialLoad(false);
       }
     };
     
@@ -44,7 +47,8 @@ const Exams = () => {
 
     if (searchTerm) {
       filtered = filtered.filter(exam =>
-        exam.name.toLowerCase().includes(searchTerm.toLowerCase())
+        exam.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exam.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -62,7 +66,7 @@ const Exams = () => {
   const handleRefresh = async () => {
     try {
       await fetchExams();
-      toast.info("Exam data refreshed.");
+      toast.info("Exam data refreshed");
     } catch (error: any) {
       console.error('Failed to refresh exams:', error);
       toast.error('Failed to refresh exams. Please try again.');
@@ -73,13 +77,13 @@ const Exams = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
         <div className="space-y-8">
           <div>
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
               <div>
-                <h1 className="text-3xl font-bold">Upcoming Exams</h1>
-                <p className="text-muted-foreground mt-1">
+                <h1 className="text-3xl font-bold mb-2">Upcoming Exams</h1>
+                <p className="text-muted-foreground">
                   Browse and track important exam dates
                 </p>
               </div>
@@ -100,32 +104,38 @@ const Exams = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
-            <Input
-              type="text"
-              placeholder="Search exams..."
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full sm:w-auto sm:flex-1"
-            />
-            <Select onValueChange={handleCategoryChange} defaultValue={categoryFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Categories</SelectItem>
-                <SelectItem value="Engineering">Engineering</SelectItem>
-                <SelectItem value="Medical">Medical</SelectItem>
-                <SelectItem value="Law">Law</SelectItem>
-                <SelectItem value="Management">Management</SelectItem>
-                <SelectItem value="Civil Services">Civil Services</SelectItem>
-                <SelectItem value="Banking">Banking</SelectItem>
-                <SelectItem value="Teaching">Teaching</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative w-full sm:w-auto sm:flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search exams..."
+                value={searchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-10 w-full"
+              />
+            </div>
+            <div className="w-full sm:w-auto flex items-center gap-2">
+              <FilterIcon className="h-4 w-4 text-muted-foreground hidden sm:block" />
+              <Select onValueChange={handleCategoryChange} defaultValue={categoryFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter by Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Categories</SelectItem>
+                  <SelectItem value="Engineering">Engineering</SelectItem>
+                  <SelectItem value="Medical">Medical</SelectItem>
+                  <SelectItem value="Law">Law</SelectItem>
+                  <SelectItem value="Management">Management</SelectItem>
+                  <SelectItem value="Civil Services">Civil Services</SelectItem>
+                  <SelectItem value="Banking">Banking</SelectItem>
+                  <SelectItem value="Teaching">Teaching</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
-          {isLoading ? (
+          {isLoading && isInitialLoad ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               {[...Array(6)].map((_, i) => (
                 <Skeleton key={i} className="h-[350px] w-full rounded-lg" />

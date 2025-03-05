@@ -17,11 +17,14 @@ import Notifications from "./pages/Notifications";
 import AdminDashboard from "./pages/AdminDashboard";
 import DocumentProcessor from "./pages/DocumentProcessor";
 
+// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 60, // 1 hour
       gcTime: 1000 * 60 * 60 * 2, // 2 hours
+      retry: 2, // Retry failed requests twice before failing
+      refetchOnWindowFocus: false, // Don't refetch on window focus in production
     },
   },
 });
@@ -47,13 +50,11 @@ const AppRoutes = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light">
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AppRoutes />
-      </TooltipProvider>
-    </ThemeProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <AppRoutes />
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

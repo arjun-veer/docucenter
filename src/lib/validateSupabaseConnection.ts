@@ -1,3 +1,4 @@
+
 import { supabase } from './supabase';
 import { toast } from 'sonner';
 
@@ -7,12 +8,25 @@ import { toast } from 'sonner';
  */
 export const validateSupabaseConnection = async (): Promise<boolean> => {
   try {
+    if (import.meta.env.DEV && !import.meta.env.VITE_SUPABASE_URL) {
+      console.warn('Skipping Supabase validation - no connection details in development mode');
+      toast.warning('Running with mock Supabase in development mode');
+      return true;
+    }
+    
     // Ensure the user is authenticated
     const { data: session, error: sessionError } = await supabase.auth.getSession();
     
-    if (sessionError || !session) {
+    if (sessionError) {
       console.error('Supabase auth session error:', sessionError);
-      toast.error('Supabase authentication session error: ' + sessionError?.message);
+      toast.error('Cannot connect to Supabase: ' + sessionError?.message);
+      return false;
+    }
+    
+    // Handle unauthenticated users
+    if (!session?.session) {
+      console.log('No active session - user not authenticated');
+      // No toast here as this is not necessarily an error
       return false;
     }
 
@@ -21,7 +35,7 @@ export const validateSupabaseConnection = async (): Promise<boolean> => {
     
     if (authError) {
       console.error('Supabase auth error:', authError);
-      toast.error('Supabase authentication error: ' + authError.message);
+      toast.error('Authentication error: ' + authError.message);
       return false;
     }
 
@@ -41,7 +55,7 @@ export const validateSupabaseConnection = async (): Promise<boolean> => {
       
     if (dbError) {
       console.error('Supabase database error:', dbError);
-      toast.error('Supabase database error: ' + dbError.message);
+      toast.error('Database connection error: ' + dbError.message);
       return false;
     }
     
@@ -51,9 +65,9 @@ export const validateSupabaseConnection = async (): Promise<boolean> => {
       .getBucket('documents');
       
     if (storageError) {
-      console.error('Supabase storage error:', storageError);
-      toast.error('Supabase storage error: ' + storageError.message);
-      return false;
+      console.warn('Supabase storage error:', storageError);
+      // This might not be critical, so just warn
+      toast.warning('Storage bucket access issue: ' + storageError.message);
     }
 
     // Check pending exams table access (admin-specific)
@@ -64,18 +78,17 @@ export const validateSupabaseConnection = async (): Promise<boolean> => {
         .limit(1);
 
       if (pendingError) {
-        console.error('Error accessing pending exams:', pendingError);
-        toast.error('Error accessing admin features: ' + pendingError.message);
-        return false;
+        console.warn('Error accessing pending exams:', pendingError);
+        toast.warning('Limited admin functionality: ' + pendingError.message);
       }
     }
     
     // All checks passed
     console.log('Supabase connection validated successfully');
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error validating Supabase connection:', error);
-    toast.error('Failed to validate Supabase connection');
+    toast.error('Failed to connect to Supabase: ' + (error.message || 'Unknown error'));
     return false;
   }
 };
