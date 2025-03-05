@@ -1,5 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './types';
 
 // Get environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -19,19 +20,14 @@ if (!url || !key) {
 }
 
 // Create Supabase client with better error handling
-export const supabase = createClient(url, key, {
+export const supabase = createClient<Database>(url, key, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
   global: {
-    fetch: (...args) => {
-      return fetch(...args).catch(err => {
-        console.error('Network error when contacting Supabase:', err);
-        throw err;
-      });
-    },
+    fetch: (...args) => fetch(...args)
   },
 });
 

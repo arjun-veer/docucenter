@@ -34,78 +34,71 @@ export const useExams = create<ExamsState>()(
           const lastFetched = get().lastFetched;
           const exams = get().exams;
           
-          // Use cached data if available and fresh
-          if (exams.length > 0 && lastFetched && (currentTime - lastFetched < CACHE_DURATION)) {
-            console.log('Using cached exam data, last fetched at:', new Date(lastFetched).toLocaleString());
-            return;
-          }
-          
-          // If we're already loading, don't fetch again
-          if (get().isLoading) {
-            console.log('Already fetching exam data, skipping duplicate request');
-            return;
-          }
-          
-          console.log('Fetching fresh exam data from the database...');
-          set({ isLoading: true, error: null });
-          
-          // Fetch complete data from the database with error handling
-          const { data, error } = await supabase
-            .from('exams')
-            .select('*')
-            .order('registration_end_date', { ascending: true });
+          // Force refresh if no exams are loaded yet
+          if (exams.length === 0 || !lastFetched || (currentTime - lastFetched > CACHE_DURATION)) {
+            console.log('Fetching fresh exam data from the database...');
+            set({ isLoading: true, error: null });
             
-          if (error) {
-            console.error('Error fetching exams:', error);
-            set({ 
-              isLoading: false, 
-              error: error.message,
-              // Keep existing exams if we have them, otherwise use mock data
-              exams: exams.length > 0 ? exams : transformExamsData(mockExams, get().subscribedExams)
-            });
-            
-            // Only show error toast if we couldn't fall back to any data
-            if (exams.length === 0) {
-              toast.error(`Failed to load exams: ${error.message}`);
+            // Fetch complete data from the database with error handling
+            const { data, error } = await supabase
+              .from('exams')
+              .select('*')
+              .order('registration_end_date', { ascending: true });
+              
+            if (error) {
+              console.error('Error fetching exams:', error);
+              set({ 
+                isLoading: false, 
+                error: error.message,
+                // Keep existing exams if we have them, otherwise use mock data
+                exams: exams.length > 0 ? exams : transformExamsData(mockExams, get().subscribedExams)
+              });
+              
+              // Only show error toast if we couldn't fall back to any data
+              if (exams.length === 0) {
+                toast.error(`Failed to load exams: ${error.message}`);
+              }
+              return;
             }
-            return;
-          }
-          
-          if (!data || data.length === 0) {
-            console.log('No exam data returned, using mock data as fallback');
+            
+            if (!data || data.length === 0) {
+              console.log('No exam data returned, using mock data as fallback');
+              set({ 
+                isLoading: false, 
+                exams: transformExamsData(mockExams, get().subscribedExams),
+                lastFetched: currentTime 
+              });
+              return;
+            }
+            
+            console.log(`Fetched ${data.length} exams from database`);
+            
+            // Transform the data to match the Exam type and update subscription status
+            const subscribedExams = get().subscribedExams;
+            const transformedExams = data.map((exam: any) => ({
+              id: exam.id,
+              name: exam.name,
+              category: exam.category,
+              registrationStartDate: new Date(exam.registration_start_date),
+              registrationEndDate: new Date(exam.registration_end_date),
+              examDate: exam.exam_date ? new Date(exam.exam_date) : undefined,
+              resultDate: exam.result_date ? new Date(exam.result_date) : undefined,
+              websiteUrl: exam.website_url,
+              description: exam.description,
+              eligibility: exam.eligibility,
+              applicationFee: exam.application_fee,
+              isSubscribed: subscribedExams.includes(exam.id),
+            }));
+            
             set({ 
-              isLoading: false, 
-              exams: transformExamsData(mockExams, get().subscribedExams),
-              lastFetched: currentTime 
+              exams: transformedExams, 
+              isLoading: false,
+              error: null,
+              lastFetched: currentTime
             });
-            return;
+          } else {
+            console.log('Using cached exam data, last fetched at:', new Date(lastFetched).toLocaleString());
           }
-          
-          console.log(`Fetched ${data.length} exams from database`);
-          
-          // Transform the data to match the Exam type and update subscription status
-          const subscribedExams = get().subscribedExams;
-          const transformedExams = data.map((exam: any) => ({
-            id: exam.id,
-            name: exam.name,
-            category: exam.category,
-            registrationStartDate: new Date(exam.registration_start_date),
-            registrationEndDate: new Date(exam.registration_end_date),
-            examDate: exam.exam_date ? new Date(exam.exam_date) : undefined,
-            resultDate: exam.result_date ? new Date(exam.result_date) : undefined,
-            websiteUrl: exam.website_url,
-            description: exam.description,
-            eligibility: exam.eligibility,
-            applicationFee: exam.application_fee,
-            isSubscribed: subscribedExams.includes(exam.id),
-          }));
-          
-          set({ 
-            exams: transformedExams, 
-            isLoading: false,
-            error: null,
-            lastFetched: currentTime
-          });
         } catch (error: any) {
           console.error('Error in fetchExams:', error);
           set({ 
@@ -121,6 +114,25 @@ export const useExams = create<ExamsState>()(
           // Don't subscribe if already subscribed
           if (state.subscribedExams.includes(examId)) {
             return state;
+          }
+          
+          // Sync with Supabase if user is authenticated
+          try {
+            supabase.auth.getUser().then(({ data }) => {
+              if (data?.user) {
+                supabase
+                  .from('user_exam_subscriptions')
+                  .insert({
+                    user_id: data.user.id,
+                    exam_id: examId
+                  })
+                  .then(({ error }) => {
+                    if (error) console.error('Error saving subscription to Supabase:', error);
+                  });
+              }
+            });
+          } catch (error) {
+            console.error('Error checking auth status:', error);
           }
           
           const updatedSubscribedExams = [...state.subscribedExams, examId];
@@ -139,6 +151,24 @@ export const useExams = create<ExamsState>()(
           // Don't unsubscribe if not subscribed
           if (!state.subscribedExams.includes(examId)) {
             return state;
+          }
+          
+          // Sync with Supabase if user is authenticated
+          try {
+            supabase.auth.getUser().then(({ data }) => {
+              if (data?.user) {
+                supabase
+                  .from('user_exam_subscriptions')
+                  .delete()
+                  .eq('user_id', data.user.id)
+                  .eq('exam_id', examId)
+                  .then(({ error }) => {
+                    if (error) console.error('Error removing subscription from Supabase:', error);
+                  });
+              }
+            });
+          } catch (error) {
+            console.error('Error checking auth status:', error);
           }
           
           const updatedSubscribedExams = state.subscribedExams.filter(id => id !== examId);

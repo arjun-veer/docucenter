@@ -3,7 +3,7 @@ import { UserDocument } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, File, FileText, Image, Trash2 } from "lucide-react";
-import { useDocuments } from "@/lib/stores";
+import { useDocuments } from "@/lib/store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 

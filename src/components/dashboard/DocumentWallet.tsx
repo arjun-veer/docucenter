@@ -1,20 +1,51 @@
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDocuments } from '@/lib/store';
 import { DocumentCard } from '@/components/ui/DocumentCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, PlusIcon } from 'lucide-react';
-import { getDocumentsByCategory } from '@/lib/mockData';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const DocumentWallet = () => {
-  const { documents, uploadDocument } = useDocuments();
+  const { documents, uploadDocument, fetchDocuments, isLoading } = useDocuments();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Fetch documents on component mount
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
+  
   // Get documents organized by category
+  const getDocumentsByCategory = () => {
+    const documentsByCategory: Record<string, any[]> = {};
+    
+    // Initialize with default categories
+    documentsByCategory['Certificates'] = [];
+    documentsByCategory['Identity'] = [];
+    documentsByCategory['Exam Documents'] = [];
+    documentsByCategory['Processed Documents'] = [];
+    documentsByCategory['Uncategorized'] = [];
+    
+    // Group documents by category
+    documents.forEach(document => {
+      const category = document.category || 'Uncategorized';
+      if (!documentsByCategory[category]) {
+        documentsByCategory[category] = [];
+      }
+      documentsByCategory[category].push(document);
+    });
+    
+    // Filter out empty categories
+    return Object.fromEntries(
+      Object.entries(documentsByCategory)
+        .filter(([_, docs]) => docs.length > 0 || ['Certificates', 'Identity', 'Exam Documents', 'Uncategorized'].includes(_))
+    );
+  };
+  
   const documentsByCategory = getDocumentsByCategory();
   const categories = Object.keys(documentsByCategory);
   
@@ -59,6 +90,9 @@ export const DocumentWallet = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+      
+      // Refetch documents to ensure we have the latest data
+      fetchDocuments();
     } catch (error) {
       toast.error('Failed to upload document');
       console.error(error);
@@ -114,44 +148,52 @@ export const DocumentWallet = () => {
         </div>
       </div>
       
-      <Tabs defaultValue={categories[0] || 'Uncategorized'} className="w-full">
-        <TabsList className="mb-6">
-          {categories.map((category) => (
-            <TabsTrigger key={category} value={category}>
-              {category}
-            </TabsTrigger>
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-[220px] w-full rounded-lg" />
           ))}
-        </TabsList>
-        
-        {categories.map((category) => (
-          <TabsContent key={category} value={category}>
-            {documentsByCategory[category].length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {documentsByCategory[category].map((document) => (
-                  <DocumentCard key={document.id} document={document} />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 border rounded-lg bg-muted/30">
-                <div className="rounded-full bg-secondary p-3 mb-4">
-                  <PlusIcon className="h-6 w-6 text-muted-foreground" />
+        </div>
+      ) : (
+        <Tabs defaultValue={categories[0] || 'Uncategorized'} className="w-full">
+          <TabsList className="mb-6">
+            {categories.map((category) => (
+              <TabsTrigger key={category} value={category}>
+                {category}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          
+          {categories.map((category) => (
+            <TabsContent key={category} value={category}>
+              {documentsByCategory[category].length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {documentsByCategory[category].map((document) => (
+                    <DocumentCard key={document.id} document={document} />
+                  ))}
                 </div>
-                <h3 className="text-lg font-medium mb-1">No documents</h3>
-                <p className="text-muted-foreground text-sm mb-4 text-center max-w-sm">
-                  You haven't uploaded any {category.toLowerCase()} documents yet.
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Upload your first document
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 border rounded-lg bg-muted/30">
+                  <div className="rounded-full bg-secondary p-3 mb-4">
+                    <PlusIcon className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-1">No documents</h3>
+                  <p className="text-muted-foreground text-sm mb-4 text-center max-w-sm">
+                    You haven't uploaded any {category.toLowerCase()} documents yet.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Upload your first document
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
     </div>
   );
 };

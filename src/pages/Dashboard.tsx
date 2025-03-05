@@ -5,34 +5,47 @@ import { Footer } from '@/components/layout/Footer';
 import { DocumentWallet } from '@/components/dashboard/DocumentWallet';
 import { ExamTracker } from '@/components/dashboard/ExamTracker';
 import { DocProcessorButton } from '@/components/dashboard/DocProcessorButton';
-import { validateSupabaseConnection } from '@/lib/validateSupabaseConnection';
+import { checkSupabaseConnection } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useExams, useDocuments } from '@/lib/store';
 
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const { fetchExams } = useExams();
 
   useEffect(() => {
-    // Validate Supabase connection when dashboard loads
-    const validateConnection = async () => {
+    // Check Supabase connection and fetch initial data
+    const initializeDashboard = async () => {
       setIsLoading(true);
       try {
-        const isValid = await validateSupabaseConnection();
-        setIsConnected(isValid);
-        if (isValid) {
-          toast.success('Connected to Supabase successfully');
+        // Check Supabase connection
+        const { connected, error } = await checkSupabaseConnection();
+        setIsConnected(connected);
+        
+        if (connected) {
+          console.log('Connected to Supabase successfully');
+          
+          // Fetch exams data
+          await fetchExams();
+          
+          // Don't show success toast to avoid too many toasts
+        } else {
+          console.error('Connection check failed:', error);
+          toast.error('Could not connect to database. Using offline data.');
         }
       } catch (error) {
-        console.error('Connection validation error:', error);
+        console.error('Dashboard initialization error:', error);
         setIsConnected(false);
+        toast.error('Error initializing dashboard. Using offline data if available.');
       } finally {
         setIsLoading(false);
       }
     };
     
-    validateConnection();
-  }, []);
+    initializeDashboard();
+  }, [fetchExams]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
