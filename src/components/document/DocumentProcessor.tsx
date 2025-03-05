@@ -1,25 +1,77 @@
-
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDocuments } from '@/lib/store';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { resizeImage, cropImage, convertImageFormat, validateFile, formatFileSize, SUPPORTED_IMAGE_TYPES } from '@/lib/fileUtils';
+import { Upload, Image as ImageIcon, CropIcon, FileType, Save, RefreshCw, Trash, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { resizeImage, cropImage, convertImageFormat, SUPPORTED_IMAGE_TYPES } from '@/lib/fileUtils';
-import { FileUploader } from './processor/FileUploader';
-import { ProcessTabs } from './processor/ProcessTabs';
-import { Area } from 'react-easy-crop/types';
+import Cropper from 'react-easy-crop';
 
 export const DocumentProcessor = () => {
   const { uploadDocument } = useDocuments();
+  const [activeTab, setActiveTab] = useState('resize');
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [processedFile, setProcessedFile] = useState<File | null>(null);
   const [processedPreviewUrl, setProcessedPreviewUrl] = useState<string | null>(null);
   
-  // When component mounts, check if we have a dark theme
-  // This effect will run when the component mounts and will detect if we have a dark theme
-  // You could use this to adjust your UI if needed
+  // Resize settings
+  const [resizeWidth, setResizeWidth] = useState(800);
+  const [resizeHeight, setResizeHeight] = useState(600);
+  const [resizeQuality, setResizeQuality] = useState(80);
   
-  const handleResize = async (width: number, height: number, quality: number) => {
+  // Convert settings
+  const [convertFormat, setConvertFormat] = useState<'jpeg' | 'png' | 'webp'>('jpeg');
+  const [convertQuality, setConvertQuality] = useState(80);
+  
+  // Crop settings
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  
+  // Size reduction settings
+  const [targetSizeKB, setTargetSizeKB] = useState(500); // Default target size: 500KB
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // When component mounts, check if we have a dark theme
+  useEffect(() => {
+    // This effect will run when the component mounts
+    // and will detect if we have a dark theme
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    // You could use this to adjust your UI if needed
+  }, []);
+  
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    
+    // Validate the file
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
+    
+    setSelectedFile(file);
+    
+    // Create preview URL
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    
+    // Reset processed state
+    setProcessedFile(null);
+    setProcessedPreviewUrl(null);
+  };
+  
+  const handleResize = async () => {
     if (!selectedFile) {
       toast.error('Please select an image first');
       return;
@@ -32,14 +84,14 @@ export const DocumentProcessor = () => {
     
     setIsProcessing(true);
     try {
-      const resized = await resizeImage(selectedFile, width, height, quality / 100);
+      const resized = await resizeImage(selectedFile, resizeWidth, resizeHeight, resizeQuality / 100);
       setProcessedFile(resized);
       
       // Create preview URL
       const url = URL.createObjectURL(resized);
       setProcessedPreviewUrl(url);
       
-      toast.success(`Image resized to ${width} x ${height}`);
+      toast.success(`Image resized to ${resizeWidth} x ${resizeHeight}`);
     } catch (error: any) {
       console.error('Resize error:', error);
       toast.error(`Failed to resize image: ${error.message}`);
@@ -48,7 +100,7 @@ export const DocumentProcessor = () => {
     }
   };
   
-  const handleReduceFileSize = async (targetSizeKB: number) => {
+  const handleReduceFileSize = async () => {
     if (!selectedFile) {
       toast.error('Please select a file first');
       return;
@@ -113,7 +165,7 @@ export const DocumentProcessor = () => {
       const url = URL.createObjectURL(processedFile);
       setProcessedPreviewUrl(url);
       
-      toast.success(`File reduced to ${(processedFile.size / 1024).toFixed(1)}KB`);
+      toast.success(`File reduced to ${formatFileSize(processedFile.size)}`);
     } catch (error: any) {
       console.error('Size reduction error:', error);
       toast.error(`Failed to reduce file size: ${error.message}`);
@@ -122,7 +174,7 @@ export const DocumentProcessor = () => {
     }
   };
   
-  const handleConvert = async (format: 'jpeg' | 'png' | 'webp', quality: number) => {
+  const handleConvert = async () => {
     if (!selectedFile) {
       toast.error('Please select an image first');
       return;
@@ -135,14 +187,14 @@ export const DocumentProcessor = () => {
     
     setIsProcessing(true);
     try {
-      const converted = await convertImageFormat(selectedFile, format, quality / 100);
+      const converted = await convertImageFormat(selectedFile, convertFormat, convertQuality / 100);
       setProcessedFile(converted);
       
       // Create preview URL
       const url = URL.createObjectURL(converted);
       setProcessedPreviewUrl(url);
       
-      toast.success(`Image converted to ${format.toUpperCase()}`);
+      toast.success(`Image converted to ${convertFormat.toUpperCase()}`);
     } catch (error: any) {
       console.error('Convert error:', error);
       toast.error(`Failed to convert image: ${error.message}`);
@@ -151,7 +203,7 @@ export const DocumentProcessor = () => {
     }
   };
   
-  const handleCrop = async (croppedAreaPixels: Area) => {
+  const handleCrop = async () => {
     if (!selectedFile) {
       toast.error('Please select an image first');
       return;
@@ -206,6 +258,11 @@ export const DocumentProcessor = () => {
     setPreviewUrl(null);
     setProcessedFile(null);
     setProcessedPreviewUrl(null);
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
   
   const handleDownload = () => {
@@ -222,6 +279,10 @@ export const DocumentProcessor = () => {
     document.body.removeChild(a);
   };
   
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+  
   return (
     <div className="space-y-6">
       <div>
@@ -232,29 +293,327 @@ export const DocumentProcessor = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <FileUploader 
-          selectedFile={selectedFile}
-          setSelectedFile={setSelectedFile}
-          previewUrl={previewUrl}
-          setPreviewUrl={setPreviewUrl}
-          onClear={handleClear}
-          supportedImageTypes={SUPPORTED_IMAGE_TYPES}
-        />
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>Input File</CardTitle>
+            <CardDescription>
+              Upload a file to process
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 hover:border-primary transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              {previewUrl ? (
+                SUPPORTED_IMAGE_TYPES.includes(selectedFile?.type || '') ? (
+                  <img 
+                    src={previewUrl} 
+                    alt="Input preview" 
+                    className="max-w-full max-h-[200px] object-contain mb-4"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center mb-4">
+                    <FileText className="h-16 w-16 text-muted-foreground" />
+                    <p className="mt-2 font-medium">{selectedFile?.name}</p>
+                  </div>
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center text-muted-foreground py-6">
+                  <Upload className="h-10 w-10 mb-2" />
+                  <p>Click to upload a file</p>
+                  <p className="text-xs mt-1">Images, PDFs, or documents</p>
+                </div>
+              )}
+              
+              <Input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+              />
+            </div>
+            
+            {selectedFile && (
+              <div className="text-sm text-muted-foreground">
+                <p><strong>Name:</strong> {selectedFile.name}</p>
+                <p><strong>Size:</strong> {formatFileSize(selectedFile.size)}</p>
+                <p><strong>Type:</strong> {selectedFile.type}</p>
+              </div>
+            )}
+            
+            <div className="flex justify-between">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleClear}
+                disabled={!selectedFile}
+              >
+                <Trash className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+              
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Change
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
         
-        <ProcessTabs 
-          selectedFile={selectedFile}
-          processedFile={processedFile}
-          processedPreviewUrl={processedPreviewUrl}
-          previewUrl={previewUrl}
-          isProcessing={isProcessing}
-          supportedImageTypes={SUPPORTED_IMAGE_TYPES}
-          onResize={handleResize}
-          onCrop={handleCrop}
-          onConvert={handleConvert}
-          onReduceSize={handleReduceFileSize}
-          onSave={handleSave}
-          onDownload={handleDownload}
-        />
+        <Card className="col-span-1 md:col-span-2">
+          <CardHeader>
+            <CardTitle>Process File</CardTitle>
+            <CardDescription>
+              Select an operation to perform
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid grid-cols-4 mb-6">
+                <TabsTrigger value="size">
+                  <span className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    Reduce Size
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="resize">
+                  <span className="flex items-center gap-1">
+                    <ImageIcon className="h-4 w-4" />
+                    Resize
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="crop">
+                  <span className="flex items-center gap-1">
+                    <CropIcon className="h-4 w-4" />
+                    Crop
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="convert">
+                  <span className="flex items-center gap-1">
+                    <FileType className="h-4 w-4" />
+                    Convert
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="size" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Target Size (KB)</label>
+                    <div className="flex items-center gap-2">
+                      <Slider 
+                        value={[targetSizeKB]} 
+                        min={2} 
+                        max={2000} 
+                        step={10}
+                        onValueChange={(value) => setTargetSizeKB(value[0])}
+                        className="flex-1"
+                      />
+                      <span className="text-sm w-16 text-right">{targetSizeKB} KB</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Set your target file size in KB. The processor will try to reduce your file to this size or smaller.
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleReduceFileSize} 
+                    disabled={!selectedFile || isProcessing} 
+                    className="w-full"
+                  >
+                    {isProcessing ? 'Processing...' : 'Reduce File Size'}
+                  </Button>
+                  
+                  <p className="text-xs text-muted-foreground italic">
+                    Note: Size reduction works best with image files. For PDFs and other document types, 
+                    server-side processing would provide better results.
+                  </p>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="resize" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Width</label>
+                      <div className="flex items-center gap-2">
+                        <Slider 
+                          value={[resizeWidth]} 
+                          min={50} 
+                          max={2000} 
+                          step={10}
+                          onValueChange={(value) => setResizeWidth(value[0])}
+                          className="flex-1"
+                        />
+                        <span className="text-sm w-12 text-right">{resizeWidth}px</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Height</label>
+                      <div className="flex items-center gap-2">
+                        <Slider 
+                          value={[resizeHeight]} 
+                          min={50} 
+                          max={2000} 
+                          step={10}
+                          onValueChange={(value) => setResizeHeight(value[0])}
+                          className="flex-1"
+                        />
+                        <span className="text-sm w-12 text-right">{resizeHeight}px</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Quality</label>
+                    <div className="flex items-center gap-2">
+                      <Slider 
+                        value={[resizeQuality]} 
+                        min={10} 
+                        max={100} 
+                        step={5}
+                        onValueChange={(value) => setResizeQuality(value[0])}
+                        className="flex-1"
+                      />
+                      <span className="text-sm w-12 text-right">{resizeQuality}%</span>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleResize} 
+                    disabled={!selectedFile || isProcessing} 
+                    className="w-full"
+                  >
+                    {isProcessing ? 'Processing...' : 'Resize Image'}
+                  </Button>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="crop" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="relative w-full h-64 bg-gray-200 dark:bg-gray-800">
+                    <Cropper
+                      image={previewUrl}
+                      crop={crop}
+                      zoom={zoom}
+                      aspect={4 / 3}
+                      onCropChange={setCrop}
+                      onZoomChange={setZoom}
+                      onCropComplete={onCropComplete}
+                    />
+                  </div>
+                  
+                  <Button 
+                    onClick={handleCrop} 
+                    disabled={!selectedFile || isProcessing} 
+                    className="w-full"
+                  >
+                    {isProcessing ? 'Processing...' : 'Crop Image'}
+                  </Button>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="convert" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Output Format</label>
+                    <Select 
+                      value={convertFormat} 
+                      onValueChange={(value: 'jpeg' | 'png' | 'webp') => setConvertFormat(value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="jpeg">JPEG</SelectItem>
+                        <SelectItem value="png">PNG</SelectItem>
+                        <SelectItem value="webp">WebP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Quality</label>
+                    <div className="flex items-center gap-2">
+                      <Slider 
+                        value={[convertQuality]} 
+                        min={10} 
+                        max={100} 
+                        step={5}
+                        onValueChange={(value) => setConvertQuality(value[0])}
+                        className="flex-1"
+                      />
+                      <span className="text-sm w-12 text-right">{convertQuality}%</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Note: Quality only applies to JPEG and WebP formats.
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleConvert} 
+                    disabled={!selectedFile || isProcessing} 
+                    className="w-full"
+                  >
+                    {isProcessing ? 'Processing...' : 'Convert Image'}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
+            
+            {processedPreviewUrl && (
+              <div className="mt-4 space-y-4">
+                <div className="border rounded-lg p-4 dark:border-gray-700">
+                  <h3 className="font-medium mb-2">Processed File</h3>
+                  {SUPPORTED_IMAGE_TYPES.includes(processedFile?.type || '') ? (
+                    <img 
+                      src={processedPreviewUrl} 
+                      alt="Processed preview" 
+                      className="max-w-full max-h-[250px] object-contain mx-auto"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-4">
+                      <FileText className="h-16 w-16 text-muted-foreground" />
+                      <p className="mt-2 font-medium">{processedFile?.name}</p>
+                    </div>
+                  )}
+                  
+                  {processedFile && (
+                    <div className="text-sm text-muted-foreground mt-2">
+                      <p><strong>Size:</strong> {formatFileSize(processedFile.size)}</p>
+                      <p><strong>Type:</strong> {processedFile.type}</p>
+                      {selectedFile && (
+                        <p><strong>Size reduction:</strong> {((1 - processedFile.size / selectedFile.size) * 100).toFixed(1)}%</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex justify-between gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleDownload}
+                    className="flex-1"
+                  >
+                    Download
+                  </Button>
+                  <Button 
+                    onClick={handleSave}
+                    disabled={isProcessing}
+                    className="flex-1"
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    Save to Documents
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
