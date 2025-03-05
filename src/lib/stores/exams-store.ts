@@ -10,10 +10,13 @@ type ExamsState = {
   exams: Exam[];
   isLoading: boolean;
   error: string | null;
+  lastFetched: number | null;
   fetchExams: () => Promise<void>;
   subscribeToExam: (examId: string) => void;
   unsubscribeFromExam: (examId: string) => void;
 };
+
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 export const useExams = create<ExamsState>()(
   persist(
@@ -22,12 +25,23 @@ export const useExams = create<ExamsState>()(
       exams: [],
       isLoading: false,
       error: null,
+      lastFetched: null,
       fetchExams: async () => {
         try {
-          console.log('Fetching exams...');
+          const currentTime = Date.now();
+          const lastFetched = get().lastFetched;
+          const exams = get().exams;
+          
+          // If we have data and it was fetched less than CACHE_DURATION ago, use the cached data
+          if (exams.length > 0 && lastFetched && (currentTime - lastFetched < CACHE_DURATION)) {
+            console.log('Using cached exam data, last fetched at:', new Date(lastFetched).toLocaleString());
+            return;
+          }
+          
+          console.log('Fetching fresh exam data from the database...');
           set({ isLoading: true, error: null });
           
-          // Use .from() directly with error handling but avoid using status code checks
+          // Fetch complete data from the database
           const { data, error } = await supabase
             .from('exams')
             .select('*');
@@ -64,7 +78,11 @@ export const useExams = create<ExamsState>()(
           }));
           
           console.log('Transformed exams:', transformedExams);
-          set({ exams: transformedExams, isLoading: false });
+          set({ 
+            exams: transformedExams, 
+            isLoading: false,
+            lastFetched: currentTime
+          });
         } catch (error: any) {
           console.error('Error in fetchExams:', error);
           set({ isLoading: false, error: error.message });

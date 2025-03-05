@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
@@ -19,34 +20,21 @@ const Exams = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filteredExams, setFilteredExams] = useState(exams);
 
-  // Fetch exams on component mount or from local storage
+  // Fetch exams only once on component mount
   useEffect(() => {
     const loadExams = async () => {
-      const storedExams = localStorage.getItem('exams');
-      if (storedExams) {
-        setFilteredExams(JSON.parse(storedExams));
-      } else {
-        try {
-          await fetchExams();
-        } catch (error: any) {
-          console.error('Failed to load exams:', error);
-          toast.error('Failed to load exams. Please try again.');
-        }
+      try {
+        await fetchExams();
+      } catch (error: any) {
+        console.error('Failed to load exams:', error);
+        toast.error('Failed to load exams. Please try again.');
       }
     };
     
     loadExams();
   }, [fetchExams]);
 
-  // Store exams in local storage whenever exams change
-  useEffect(() => {
-    if (exams.length > 0) {
-      localStorage.setItem('exams', JSON.stringify(exams));
-      setFilteredExams(exams);
-    }
-  }, [exams]);
-
-  // Filter exams whenever exams, categoryFilter, or searchTerm changes
+  // Update filtered exams whenever exams, categoryFilter, or searchTerm changes
   useEffect(() => {
     let filtered = exams;
 
@@ -88,7 +76,7 @@ const Exams = () => {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="space-y-8">
           <div>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
               <div>
                 <h1 className="text-3xl font-bold">Upcoming Exams</h1>
                 <p className="text-muted-foreground mt-1">
@@ -96,14 +84,14 @@ const Exams = () => {
                 </p>
               </div>
               
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-3">
                 {currentUser?.role === 'admin' && (
                   <Button onClick={() => navigate('/admin')} className="flex items-center gap-1">
                     <PlusIcon className="h-4 w-4" />
                     Add New Exams
                   </Button>
                 )}
-                <Button onClick={handleRefresh} className="flex items-center gap-1">
+                <Button onClick={handleRefresh} size="sm" variant="outline" className="flex items-center gap-1">
                   <RefreshCwIcon className="h-4 w-4" />
                   Refresh
                 </Button>
@@ -111,15 +99,16 @@ const Exams = () => {
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
             <Input
               type="text"
               placeholder="Search exams..."
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full sm:w-auto sm:flex-1"
             />
             <Select onValueChange={handleCategoryChange} defaultValue={categoryFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by Category" />
               </SelectTrigger>
               <SelectContent>
@@ -137,7 +126,7 @@ const Exams = () => {
           </div>
           
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               {[...Array(6)].map((_, i) => (
                 <Skeleton key={i} className="h-[350px] w-full rounded-lg" />
               ))}

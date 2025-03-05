@@ -18,7 +18,7 @@ export const useSettings = create<SettingsState>()(
     (set) => ({
       perplexityApiKey: null,
       serpApiKey: null,
-      darkMode: false,
+      darkMode: false, // Default to light mode
       setPerplexityApiKey: (key: string) => set({ perplexityApiKey: key }),
       setSerpApiKey: (key: string) => set({ serpApiKey: key }),
       toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),

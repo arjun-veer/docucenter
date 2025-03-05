@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { UserDocument } from '../types';
@@ -8,10 +7,13 @@ type DocumentsState = {
   documents: UserDocument[];
   isLoading: boolean;
   error: string | null;
+  lastFetched: number | null;
   fetchDocuments: () => Promise<void>;
   uploadDocument: (file: File, category: string) => Promise<void>;
   deleteDocument: (documentId: string) => Promise<void>;
 };
+
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 export const useDocuments = create<DocumentsState>()(
   persist(
@@ -19,9 +21,21 @@ export const useDocuments = create<DocumentsState>()(
       documents: [],
       isLoading: false,
       error: null,
+      lastFetched: null,
       
       fetchDocuments: async () => {
         try {
+          const currentTime = Date.now();
+          const lastFetched = get().lastFetched;
+          const documents = get().documents;
+          
+          // If we have data and it was fetched less than CACHE_DURATION ago, use the cached data
+          if (documents.length > 0 && lastFetched && (currentTime - lastFetched < CACHE_DURATION)) {
+            console.log('Using cached document data, last fetched at:', new Date(lastFetched).toLocaleString());
+            return;
+          }
+          
+          console.log('Fetching fresh document data from the database...');
           set({ isLoading: true, error: null });
           
           const { data: currentUser } = await supabase.auth.getUser();
@@ -44,7 +58,7 @@ export const useDocuments = create<DocumentsState>()(
           // Transform the data to match the UserDocument type
           const transformedDocs = data.map((doc: any) => ({
             id: doc.id,
-            userId: doc.user_id, // Include userId field
+            userId: doc.user_id,
             fileName: doc.file_name,
             fileType: doc.file_type,
             fileSize: doc.file_size,
@@ -53,7 +67,11 @@ export const useDocuments = create<DocumentsState>()(
             url: doc.storage_path,
           }));
           
-          set({ documents: transformedDocs, isLoading: false });
+          set({ 
+            documents: transformedDocs, 
+            isLoading: false,
+            lastFetched: currentTime
+          });
         } catch (error: any) {
           console.error('Error in fetchDocuments:', error);
           set({ isLoading: false, error: error.message });
@@ -110,7 +128,7 @@ export const useDocuments = create<DocumentsState>()(
           // Add to local state
           const newDocument: UserDocument = {
             id: data.id,
-            userId: data.user_id, // Include userId field
+            userId: data.user_id,
             fileName: data.file_name,
             fileType: data.file_type,
             fileSize: data.file_size,

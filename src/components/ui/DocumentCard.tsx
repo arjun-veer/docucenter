@@ -55,43 +55,46 @@ export const DocumentCard = ({ document: userDocument }: DocumentCardProps) => {
   };
   
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-md">
-      <CardHeader className="p-4 bg-muted/30">
-        <div className="flex justify-center">{getFileIcon()}</div>
+    <Card className="overflow-hidden transition-all hover:shadow-md h-full">
+      <CardHeader className="p-6 bg-muted/30 flex items-center justify-center">
+        <div className="rounded-full bg-background p-3 shadow-sm">
+          {getFileIcon()}
+        </div>
       </CardHeader>
-      <CardContent className="p-4">
-        <CardTitle className="text-base font-medium truncate mb-1" title={userDocument.fileName}>
+      <CardContent className="p-5">
+        <CardTitle className="text-base font-medium truncate mb-3" title={userDocument.fileName}>
           {userDocument.fileName}
         </CardTitle>
         <div className="flex justify-between items-center text-sm text-muted-foreground">
-          <span className={cn("uppercase", {
-            "text-red-500": userDocument.fileType === 'pdf',
-            "text-blue-500": userDocument.fileType === 'docx' || userDocument.fileType === 'doc',
-            "text-green-500": ['jpg', 'jpeg', 'png', 'webp'].includes(userDocument.fileType.toLowerCase()),
+          <span className={cn("uppercase font-medium px-2 py-1 rounded-full text-xs", {
+            "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-300": userDocument.fileType === 'pdf',
+            "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-300": userDocument.fileType === 'docx' || userDocument.fileType === 'doc',
+            "bg-green-100 text-green-600 dark:bg-green-950 dark:text-green-300": ['jpg', 'jpeg', 'png', 'webp'].includes(userDocument.fileType.toLowerCase()),
+            "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300": !['pdf', 'docx', 'doc', 'jpg', 'jpeg', 'png', 'webp'].includes(userDocument.fileType.toLowerCase()),
           })}>
             {userDocument.fileType}
           </span>
           <span>{userDocument.fileSize} KB</span>
         </div>
       </CardContent>
-      <CardFooter className="p-2 pt-0 flex justify-between">
+      <CardFooter className="p-4 pt-0 flex justify-between border-t mt-4">
         <Button 
           variant="ghost" 
           size="sm" 
           onClick={handleDownload} 
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 hover:bg-muted/50"
         >
           <Download className="h-4 w-4" />
-          <span className="sr-only">Download</span>
+          <span className="sm:inline hidden">Download</span>
         </Button>
         <Button 
           variant="ghost" 
           size="sm" 
           onClick={handleDelete} 
-          className="text-destructive hover:text-destructive/90"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
         >
           <Trash2 className="h-4 w-4" />
-          <span className="sr-only">Delete</span>
+          <span className="sm:inline hidden">Delete</span>
         </Button>
       </CardFooter>
     </Card>
