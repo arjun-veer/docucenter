@@ -5,19 +5,17 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Provide fallback for development only
-const devFallbackUrl = 'https://example.supabase.co';
-const devFallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YW1wbGUiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYwMDAwMDAwMCwiZXhwIjoxNjAwMDAwMDAwfQ.example';
+// Provide fallbacks for development or testing
+const prodUrl = 'https://elhylaucggxmrgyhnuwh.supabase.co';
+const prodKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVsaHlsYXVjZ2d4bXJneWhudXdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4Mzc4NDcsImV4cCI6MjA1NjQxMzg0N30.pgVDZkRFXJVXgshfY40w28T__NMeOYDjGYQK-lAACmY';
 
-// Use the environment variables if available, fallback for development only
-const url = supabaseUrl || (import.meta.env.DEV ? devFallbackUrl : '');
-const key = supabaseAnonKey || (import.meta.env.DEV ? devFallbackKey : '');
+// Use the environment variables if available, fallback for development
+const url = supabaseUrl || (import.meta.env.DEV ? prodUrl : '');
+const key = supabaseAnonKey || (import.meta.env.DEV ? prodKey : '');
 
-// Check if we're in production and missing credentials
-if (import.meta.env.PROD && (!supabaseUrl || !supabaseAnonKey)) {
-  console.error('Supabase credentials missing in production environment. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
-} else if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials missing. Using fallback values for development. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables for production.');
+// Check if we're missing credentials
+if (!url || !key) {
+  console.error('Supabase credentials missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
 }
 
 // Create Supabase client with better error handling
@@ -27,7 +25,27 @@ export const supabase = createClient(url, key, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
+  global: {
+    fetch: (...args) => {
+      return fetch(...args).catch(err => {
+        console.error('Network error when contacting Supabase:', err);
+        throw err;
+      });
+    },
+  },
 });
+
+// Add a simple method to check connectivity
+export const checkSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('exams').select('id').limit(1);
+    if (error) throw error;
+    return { connected: true, error: null };
+  } catch (err) {
+    console.error('Supabase connection check failed:', err);
+    return { connected: false, error: err };
+  }
+};
 
 // Database types
 export type Database = {

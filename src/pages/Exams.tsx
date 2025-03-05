@@ -6,40 +6,55 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useExams, useAuth } from "@/lib/stores";
+import { useExams, useAuth } from "@/lib/store";
 import { PlusIcon, RefreshCwIcon, Search, FilterIcon } from "lucide-react";
 import { ExamCard } from "@/components/ui/ExamCard";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { mockExams } from "@/lib/mockData";
 
 const Exams = () => {
-  const { exams, fetchExams, isLoading, error } = useExams();
+  const { exams, fetchExams, isLoading, error, lastFetched } = useExams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [filteredExams, setFilteredExams] = useState(exams);
+  const [filteredExams, setFilteredExams] = useState(exams.length ? exams : mockExams);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Fetch exams only once on component mount
+  // Fetch exams only once on component mount or if cache is stale
   useEffect(() => {
     const loadExams = async () => {
       try {
+        // Check if we already have cached exams data
+        if (exams.length > 0 && lastFetched) {
+          console.log('Using cached exam data from store, last fetched:', new Date(lastFetched).toLocaleString());
+          setIsInitialLoad(false);
+          return;
+        }
+        
         await fetchExams();
       } catch (error: any) {
         console.error('Failed to load exams:', error);
-        toast.error('Failed to load exams. Please try again.');
+        // If we have mock data and no real data, use mock data silently
+        if (!exams.length) {
+          console.log('Using mock exam data as fallback');
+          toast.error('Could not connect to exam database. Using offline data.');
+        }
       } finally {
         setIsInitialLoad(false);
       }
     };
     
     loadExams();
-  }, [fetchExams]);
+  }, [fetchExams, exams.length, lastFetched]);
 
   // Update filtered exams whenever exams, categoryFilter, or searchTerm changes
   useEffect(() => {
-    let filtered = exams;
+    // If no exams from database, use mock data
+    const dataSource = exams.length > 0 ? exams : mockExams;
+    
+    let filtered = dataSource;
 
     if (categoryFilter !== 'All') {
       filtered = filtered.filter(exam => exam.category === categoryFilter);
@@ -65,11 +80,12 @@ const Exams = () => {
   
   const handleRefresh = async () => {
     try {
+      toast.info("Refreshing exam data...");
       await fetchExams();
-      toast.info("Exam data refreshed");
+      toast.success("Exam data refreshed successfully");
     } catch (error: any) {
       console.error('Failed to refresh exams:', error);
-      toast.error('Failed to refresh exams. Please try again.');
+      toast.error('Failed to refresh exams. Please check your connection.');
     }
   };
 
@@ -95,8 +111,14 @@ const Exams = () => {
                     Add New Exams
                   </Button>
                 )}
-                <Button onClick={handleRefresh} size="sm" variant="outline" className="flex items-center gap-1">
-                  <RefreshCwIcon className="h-4 w-4" />
+                <Button 
+                  onClick={handleRefresh} 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex items-center gap-1"
+                  disabled={isLoading}
+                >
+                  <RefreshCwIcon className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
               </div>
@@ -129,6 +151,7 @@ const Exams = () => {
                   <SelectItem value="Civil Services">Civil Services</SelectItem>
                   <SelectItem value="Banking">Banking</SelectItem>
                   <SelectItem value="Teaching">Teaching</SelectItem>
+                  <SelectItem value="School Board">School Board</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -141,7 +164,7 @@ const Exams = () => {
                 <Skeleton key={i} className="h-[350px] w-full rounded-lg" />
               ))}
             </div>
-          ) : error ? (
+          ) : error && !filteredExams.length ? (
             <div className="py-12 text-center space-y-4">
               <p className="text-muted-foreground">Could not load exam data: {error}</p>
               <Button onClick={handleRefresh} variant="outline">

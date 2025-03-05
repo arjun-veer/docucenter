@@ -1,9 +1,9 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Exam } from '../types';
 import { supabase } from '../supabase';
 import { toast } from 'sonner';
+import { mockExams } from '../mockData';
 
 // Exams store for managing exam subscriptions
 type ExamsState = {
@@ -57,16 +57,25 @@ export const useExams = create<ExamsState>()(
             
           if (error) {
             console.error('Error fetching exams:', error);
-            set({ isLoading: false, error: error.message });
-            toast.error(`Failed to load exams: ${error.message}`);
+            set({ 
+              isLoading: false, 
+              error: error.message,
+              // Keep existing exams if we have them, otherwise use mock data
+              exams: exams.length > 0 ? exams : transformExamsData(mockExams, get().subscribedExams)
+            });
+            
+            // Only show error toast if we couldn't fall back to any data
+            if (exams.length === 0) {
+              toast.error(`Failed to load exams: ${error.message}`);
+            }
             return;
           }
           
           if (!data || data.length === 0) {
-            console.log('No exam data returned');
+            console.log('No exam data returned, using mock data as fallback');
             set({ 
               isLoading: false, 
-              exams: [],
+              exams: transformExamsData(mockExams, get().subscribedExams),
               lastFetched: currentTime 
             });
             return;
@@ -101,9 +110,10 @@ export const useExams = create<ExamsState>()(
           console.error('Error in fetchExams:', error);
           set({ 
             isLoading: false, 
-            error: error.message || 'Failed to fetch exams' 
+            error: error.message || 'Failed to fetch exams',
+            // Keep existing exams if we have them, otherwise use mock data
+            exams: get().exams.length > 0 ? get().exams : transformExamsData(mockExams, get().subscribedExams)
           });
-          toast.error(`Failed to load exams: ${error.message || 'Unknown error'}`);
         }
       },
       subscribeToExam: (examId) =>
@@ -118,8 +128,6 @@ export const useExams = create<ExamsState>()(
           const updatedExams = state.exams.map(exam => 
             exam.id === examId ? { ...exam, isSubscribed: true } : exam
           );
-          
-          toast.success('Successfully subscribed to exam notifications');
           
           return {
             subscribedExams: updatedSubscribedExams,
@@ -139,8 +147,6 @@ export const useExams = create<ExamsState>()(
             exam.id === examId ? { ...exam, isSubscribed: false } : exam
           );
           
-          toast.success('Successfully unsubscribed from exam notifications');
-          
           return {
             subscribedExams: updatedSubscribedExams,
             exams: updatedExams,
@@ -157,3 +163,21 @@ export const useExams = create<ExamsState>()(
     }
   )
 );
+
+// Helper function to transform exam data from any source
+function transformExamsData(examsData: any[], subscribedExams: string[]): Exam[] {
+  return examsData.map(exam => ({
+    id: exam.id,
+    name: exam.name,
+    category: exam.category,
+    registrationStartDate: new Date(exam.registrationStartDate || exam.registration_start_date),
+    registrationEndDate: new Date(exam.registrationEndDate || exam.registration_end_date),
+    examDate: exam.examDate || exam.exam_date ? new Date(exam.examDate || exam.exam_date) : undefined,
+    resultDate: exam.resultDate || exam.result_date ? new Date(exam.resultDate || exam.result_date) : undefined,
+    websiteUrl: exam.websiteUrl || exam.website_url,
+    description: exam.description,
+    eligibility: exam.eligibility,
+    applicationFee: exam.applicationFee || exam.application_fee,
+    isSubscribed: subscribedExams.includes(exam.id),
+  }));
+}
