@@ -1,4 +1,3 @@
-
 -- Check if storage bucket exists and create if needed
 INSERT INTO storage.buckets (id, name, public)
 SELECT 'documents', 'Document Storage', true
@@ -157,3 +156,53 @@ USING (
 CREATE INDEX IF NOT EXISTS idx_user_documents_user_id ON public.user_documents(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_exam_subscriptions_user_id ON public.user_exam_subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_exam_subscriptions_exam_id ON public.user_exam_subscriptions(exam_id);
+
+-- Check if profiles table exists and create if needed
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role TEXT NOT NULL DEFAULT 'user',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Add RLS to profiles table
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own profile"
+  ON public.profiles 
+  FOR SELECT 
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own profile"
+  ON public.profiles 
+  FOR UPDATE 
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins can view all profiles"
+  ON public.profiles
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Create a function to automatically create a profile when a user signs up
+CREATE OR REPLACE FUNCTION public.create_profile_for_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, role)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'role', 'user'));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create a trigger to call the function when a user is created
+DROP TRIGGER IF EXISTS create_profile_on_signup ON auth.users;
+CREATE TRIGGER create_profile_on_signup
+AFTER INSERT ON auth.users
+FOR EACH ROW
+EXECUTE FUNCTION public.create_profile_for_user();

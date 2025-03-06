@@ -5,12 +5,22 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { useAuth } from '@/lib/store';
+import { supabase } from '@/lib/supabase';
 
 const Auth = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, initializeFromSupabase } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'signin';
+  
+  // Check if user is already authenticated with Supabase
+  useEffect(() => {
+    const checkAuth = async () => {
+      await initializeFromSupabase();
+    };
+    
+    checkAuth();
+  }, [initializeFromSupabase]);
   
   // Redirect if already authenticated
   useEffect(() => {

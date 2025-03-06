@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, Mail, Key } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AuthMode, UserRole } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 
 interface AuthFormProps {
   defaultMode?: AuthMode;
@@ -23,7 +24,7 @@ export const AuthForm = ({ defaultMode = 'signin' }: AuthFormProps) => {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login } = useAuth();
+  const { login, initializeFromSupabase } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -60,44 +61,59 @@ export const AuthForm = ({ defaultMode = 'signin' }: AuthFormProps) => {
     setIsSubmitting(true);
     
     try {
-      let success = false;
-      
       if (mode === 'signin') {
-        // Use the login method from useAuth
-        login({ 
-          id: crypto.randomUUID(), // Generate a temporary ID 
-          email, 
-          role: 'user' as UserRole, // Fixed: Use 'user' instead of 'student'
-          name: name // Add name to the user object
+        // Sign in with Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
         });
-        success = true;
         
-        if (success) {
-          toast.success('Welcome back!');
-          navigate('/dashboard');
-        } else {
-          toast.error('Invalid email or password');
-        }
+        if (error) throw error;
+        
+        // Use the initializeFromSupabase method to sync the store
+        await initializeFromSupabase();
+        
+        toast.success('Welcome back!');
+        navigate('/dashboard');
       } else {
-        // For signup, use the same login method since signup isn't available in store
-        login({ 
-          id: crypto.randomUUID(),
-          email, 
-          role: 'user' as UserRole, // Fixed: Use 'user' instead of 'student'
-          name: name 
+        // Sign up with Supabase
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: name,
+              role: 'user'
+            }
+          }
         });
-        success = true;
         
-        if (success) {
-          toast.success('Account created successfully!');
-          navigate('/dashboard');
-        } else {
-          toast.error('Failed to create account');
+        if (error) throw error;
+        
+        // Also create a user profile record
+        if (data.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: data.user.id,
+              role: 'user'
+            });
+            
+          if (profileError) {
+            console.error('Error creating user profile:', profileError);
+          }
         }
+        
+        // Use the initializeFromSupabase method to sync the store
+        await initializeFromSupabase();
+        
+        toast.success('Account created successfully!');
+        navigate('/dashboard');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth error:', error);
-      toast.error('Authentication failed. Please try again later.');
+      const errorMessage = error.message || 'Authentication failed. Please try again later.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
