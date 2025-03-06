@@ -1,5 +1,5 @@
-
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { DocumentWallet } from '@/components/dashboard/DocumentWallet';
@@ -8,14 +8,22 @@ import { DocProcessorButton } from '@/components/dashboard/DocProcessorButton';
 import { checkSupabaseConnection } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useExams, useDocuments } from '@/lib/store';
+import { useExams, useDocuments, useAuth } from '@/lib/store';
 
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const { fetchExams } = useExams();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // Check authentication
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+
     // Check Supabase connection and fetch initial data
     const initializeDashboard = async () => {
       setIsLoading(true);
@@ -45,7 +53,12 @@ const Dashboard = () => {
     };
     
     initializeDashboard();
-  }, [fetchExams]);
+  }, [fetchExams, isAuthenticated, navigate]);
+
+  // Skip rendering if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

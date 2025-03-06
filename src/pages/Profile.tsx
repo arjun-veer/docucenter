@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -30,9 +30,15 @@ const Profile = () => {
     email: currentUser?.email || "",
   });
 
-  // Redirect if not authenticated
+  // Use useEffect to handle authentication check and redirect
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/auth");
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Skip rendering if not authenticated
   if (!isAuthenticated) {
-    navigate("/auth");
     return null;
   }
 

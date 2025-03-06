@@ -1,4 +1,3 @@
-
 import { Exam, User, UserDocument } from './types';
 
 // Mock current user
@@ -6,7 +5,7 @@ export const currentUser: User = {
   id: 'user-1',
   email: 'student@example.com',
   name: 'Demo Student',
-  role: 'student',
+  role: 'user',
   verified: true,
   createdAt: new Date('2023-01-15')
 };

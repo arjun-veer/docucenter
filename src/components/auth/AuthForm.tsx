@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Mail, Key } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AuthMode } from '@/lib/types';
+import { AuthMode, UserRole } from '@/lib/types';
 
 interface AuthFormProps {
   defaultMode?: AuthMode;
@@ -67,7 +67,7 @@ export const AuthForm = ({ defaultMode = 'signin' }: AuthFormProps) => {
         login({ 
           id: crypto.randomUUID(), // Generate a temporary ID 
           email, 
-          role: 'student', // Default role for new users
+          role: 'user' as UserRole, // Fixed: Use 'user' instead of 'student'
           name: name // Add name to the user object
         });
         success = true;
@@ -83,7 +83,7 @@ export const AuthForm = ({ defaultMode = 'signin' }: AuthFormProps) => {
         login({ 
           id: crypto.randomUUID(),
           email, 
-          role: 'student',
+          role: 'user' as UserRole, // Fixed: Use 'user' instead of 'student'
           name: name 
         });
         success = true;

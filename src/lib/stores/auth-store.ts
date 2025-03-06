@@ -27,6 +27,8 @@ export const useAuth = create<AuthState>()(
         isAuthenticated: true, 
         currentUser: {
           ...user,
+          // Make sure the role is a valid UserRole
+          role: user.role as UserRole,
           verified: user.verified !== undefined ? user.verified : true
         } 
       }),
