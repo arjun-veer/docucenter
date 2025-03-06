@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import ExamCard from "./ExamCard";
+import { useAuth } from "@/lib/store";
 
 interface PendingExam {
   id: string;
@@ -26,10 +27,18 @@ interface PendingExam {
 const PendingExamsList = () => {
   const [pendingExams, setPendingExams] = useState<PendingExam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { currentUser } = useAuth();
 
   const fetchPendingExams = async () => {
     setIsLoading(true);
     try {
+      // Verify user is admin before fetching
+      if (currentUser?.role !== 'admin') {
+        toast.error("Only admin users can access this feature");
+        setIsLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('pending_exams')
         .select('*')
@@ -48,10 +57,16 @@ const PendingExamsList = () => {
 
   useEffect(() => {
     fetchPendingExams();
-  }, []);
+  }, [currentUser]);
 
   const approveExam = async (pendingExam: PendingExam) => {
     try {
+      // Verify user is admin before approving
+      if (currentUser?.role !== 'admin') {
+        toast.error("Only admin users can approve exams");
+        return;
+      }
+      
       // First update the pending exam status
       const { error: updateError } = await supabase
         .from('pending_exams')
@@ -88,6 +103,12 @@ const PendingExamsList = () => {
 
   const rejectExam = async (pendingExamId: string) => {
     try {
+      // Verify user is admin before rejecting
+      if (currentUser?.role !== 'admin') {
+        toast.error("Only admin users can reject exams");
+        return;
+      }
+      
       const { error } = await supabase
         .from('pending_exams')
         .update({ status: 'rejected' })

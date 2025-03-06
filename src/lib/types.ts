@@ -1,5 +1,5 @@
 
-export type UserRole = 'student' | 'admin';
+export type UserRole = 'user' | 'admin';
 
 export interface User {
   id: string;

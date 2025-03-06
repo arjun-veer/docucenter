@@ -12,6 +12,7 @@ import { checkSupabaseConnection } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentUser } = useAuth();
@@ -23,11 +24,13 @@ const AdminDashboard = () => {
   // Redirect if not authenticated or not admin
   useEffect(() => {
     if (!isAuthenticated) {
+      toast.error("Please sign in to access the admin dashboard");
       navigate("/auth");
       return;
     }
 
     if (currentUser?.role !== "admin") {
+      toast.error("You don't have admin privileges to access this page");
       navigate("/dashboard");
       return;
     }
@@ -59,6 +62,30 @@ const AdminDashboard = () => {
           <Card>
             <CardContent className="flex items-center justify-center py-12">
               <p className="text-muted-foreground">Loading admin dashboard...</p>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // If not admin, show access denied
+  if (currentUser?.role !== "admin") {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 container mx-auto px-4 py-12">
+          <Card className="border-destructive">
+            <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h2 className="text-xl font-bold">Access Denied</h2>
+              <p className="text-muted-foreground text-center">
+                You don't have admin privileges to access this page.
+              </p>
+              <Button onClick={() => navigate('/dashboard')}>
+                Return to Dashboard
+              </Button>
             </CardContent>
           </Card>
         </main>
@@ -109,7 +136,24 @@ const AdminDashboard = () => {
             </TabsList>
             
             <TabsContent value="search" className="space-y-6">
-              <AdminSearchExams serpApiKey={serpApiKey} />
+              {serpApiKey ? (
+                <AdminSearchExams serpApiKey={serpApiKey} />
+              ) : (
+                <Card>
+                  <CardContent className="py-8 flex flex-col items-center gap-4">
+                    <AlertCircle className="h-12 w-12 text-amber-500" />
+                    <div className="text-center space-y-2">
+                      <h3 className="text-xl font-medium">API Key Missing</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto">
+                        To search for exams, you need to add a SerpAPI key in the Settings page.
+                      </p>
+                      <Button onClick={() => navigate('/settings')} className="mt-4">
+                        Go to Settings
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
             
             <TabsContent value="manual" className="space-y-6">

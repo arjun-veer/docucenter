@@ -1,6 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { UserRole } from '../types';
 
 // Auth store for user authentication state
 type AuthState = {
@@ -8,12 +9,12 @@ type AuthState = {
   currentUser: {
     id: string;
     email: string;
-    role: 'user' | 'admin';
+    role: UserRole;
     name?: string;
     verified?: boolean;
   } | null;
-  login: (user: { id: string; email: string; role: 'user' | 'admin'; name?: string; verified?: boolean }) => void;
-  updateUserRole: (role: 'user' | 'admin') => void;
+  login: (user: { id: string; email: string; role: UserRole; name?: string; verified?: boolean }) => void;
+  updateUserRole: (role: UserRole) => void;
   logout: () => void;
 };
 

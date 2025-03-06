@@ -1,6 +1,5 @@
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from './types';
 
 // Get environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -20,7 +19,7 @@ if (!url || !key) {
 }
 
 // Fixed the spread operator error by correctly passing the fetch options
-export const supabase = createClient<Database>(url, key, {
+export const supabase = createClient(url, key, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
