@@ -25,8 +25,10 @@ interface PendingExam {
 
 const PendingExamsList = () => {
   const [pendingExams, setPendingExams] = useState<PendingExam[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchPendingExams = async () => {
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('pending_exams')
@@ -35,9 +37,12 @@ const PendingExamsList = () => {
       
       if (error) throw error;
       setPendingExams(data || []);
-    } catch (error) {
+      console.log("Fetched pending exams:", data);
+    } catch (error: any) {
       console.error('Error fetching pending exams:', error);
-      toast.error('Failed to load pending exams');
+      toast.error('Failed to load pending exams: ' + error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -100,7 +105,15 @@ const PendingExamsList = () => {
 
   return (
     <div className="space-y-6">
-      {pendingExams.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="text-center text-muted-foreground">
+              Loading pending exams...
+            </div>
+          </CardContent>
+        </Card>
+      ) : pendingExams.length === 0 ? (
         <Card>
           <CardContent className="py-10">
             <div className="text-center text-muted-foreground">
@@ -110,7 +123,7 @@ const PendingExamsList = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Pending Exams for Review</h2>
+          <h2 className="text-xl font-semibold">Pending Exams for Review ({pendingExams.length})</h2>
           
           {pendingExams.map((exam) => (
             <ExamCard 

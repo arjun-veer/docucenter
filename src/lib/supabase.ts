@@ -19,7 +19,7 @@ if (!url || !key) {
   console.error('Supabase credentials missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
 }
 
-// Create Supabase client with better error handling
+// Fixed the spread operator error by correctly passing the fetch options
 export const supabase = createClient<Database>(url, key, {
   auth: {
     persistSession: true,
@@ -27,7 +27,8 @@ export const supabase = createClient<Database>(url, key, {
     detectSessionInUrl: true,
   },
   global: {
-    fetch: (...args) => fetch(...args)
+    // Fixed argument passing to match expected format
+    fetch: (url, options) => fetch(url, options)
   },
 });
 
@@ -150,6 +151,59 @@ export type Database = {
           storage_path?: string;
           category?: string | null;
           created_at?: string;
+        };
+      };
+      pending_exams: {
+        Row: {
+          id: string;
+          name: string;
+          category: string;
+          description: string;
+          registration_start_date: string;
+          registration_end_date: string;
+          exam_date: string | null;
+          result_date: string | null;
+          answer_key_date: string | null;
+          website_url: string;
+          eligibility: string | null;
+          application_fee: string | null;
+          status: 'pending' | 'approved' | 'rejected';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          category: string;
+          description: string;
+          registration_start_date: string;
+          registration_end_date: string;
+          exam_date?: string | null;
+          result_date?: string | null;
+          answer_key_date?: string | null;
+          website_url: string;
+          eligibility?: string | null;
+          application_fee?: string | null;
+          status?: 'pending' | 'approved' | 'rejected';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          category?: string;
+          description?: string;
+          registration_start_date?: string;
+          registration_end_date?: string;
+          exam_date?: string | null;
+          result_date?: string | null;
+          answer_key_date?: string | null;
+          website_url?: string;
+          eligibility?: string | null;
+          application_fee?: string | null;
+          status?: 'pending' | 'approved' | 'rejected';
+          created_at?: string;
+          updated_at?: string;
         };
       };
     };
