@@ -45,32 +45,43 @@ export const useAuth = create<AuthState>()(
         set({ isAuthenticated: false, currentUser: null });
       },
       initializeFromSupabase: async () => {
-        const { data } = await supabase.auth.getSession();
-        
-        if (data.session) {
-          const { user } = data.session;
+        try {
+          const { data } = await supabase.auth.getSession();
           
-          // Get user metadata from Supabase
-          const { data: userData, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          if (error) {
-            console.error('Error fetching user profile:', error);
+          if (data.session) {
+            const { user } = data.session;
+            
+            // Get user metadata from Supabase
+            const { data: userData, error } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('user_id', user.id)
+              .maybeSingle();
+            
+            if (error) {
+              console.error('Error fetching user profile:', error);
+            }
+            
+            console.log('Fetched user profile:', userData);
+            
+            // Ensure role is a valid UserRole
+            const role = userData?.role as UserRole || 'user';
+            
+            set({ 
+              isAuthenticated: true, 
+              currentUser: {
+                id: user.id,
+                email: user.email || '',
+                role: role,
+                name: user.user_metadata?.name || user.user_metadata?.full_name,
+                verified: user.email_confirmed_at ? true : false
+              } 
+            });
+            
+            console.log('User authenticated with role:', role);
           }
-          
-          set({ 
-            isAuthenticated: true, 
-            currentUser: {
-              id: user.id,
-              email: user.email || '',
-              role: (userData?.role as UserRole) || 'user',
-              name: user.user_metadata?.name || user.user_metadata?.full_name,
-              verified: user.email_confirmed_at ? true : false
-            } 
-          });
+        } catch (error) {
+          console.error('Error initializing from Supabase:', error);
         }
       }
     }),

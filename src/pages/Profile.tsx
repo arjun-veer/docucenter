@@ -16,9 +16,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/store";
+import { useAuth } from "@/lib/stores/auth-store";
 import { Badge } from "@/components/ui/badge";
-import { User, PencilIcon, CheckIcon, XIcon } from "lucide-react";
+import { CheckIcon, Crown, PencilIcon, Shield, User, XIcon } from "lucide-react";
+import { UserRole } from "@/lib/types";
 
 const Profile = () => {
   const { currentUser, isAuthenticated } = useAuth();
@@ -38,7 +39,7 @@ const Profile = () => {
   }, [isAuthenticated, navigate]);
 
   // Skip rendering if not authenticated
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !currentUser) {
     return null;
   }
 
@@ -62,6 +63,20 @@ const Profile = () => {
       email: currentUser?.email || "",
     });
     setIsEditing(false);
+  };
+
+  const getRoleBadgeStyle = (role: UserRole) => {
+    if (role === 'admin') {
+      return "bg-primary text-primary-foreground hover:bg-primary/90";
+    }
+    return "bg-secondary text-secondary-foreground hover:bg-secondary/80";
+  };
+
+  const getRoleIcon = (role: UserRole) => {
+    if (role === 'admin') {
+      return <Crown className="h-3 w-3 mr-1" />;
+    }
+    return <User className="h-3 w-3 mr-1" />;
   };
 
   return (
@@ -172,8 +187,9 @@ const Profile = () => {
                   <div className="grid gap-2">
                     <Label>Account Type</Label>
                     <div className="py-2">
-                      <Badge className="capitalize">
-                        {currentUser?.role || "student"}
+                      <Badge className={`capitalize flex items-center ${getRoleBadgeStyle(currentUser.role)}`}>
+                        {getRoleIcon(currentUser.role)}
+                        {currentUser?.role}
                       </Badge>
                     </div>
                   </div>

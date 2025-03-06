@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import ExamCard from "./ExamCard";
-import { useAuth } from "@/lib/store";
+import { useAuth } from "@/lib/stores/auth-store";
 
 interface PendingExam {
   id: string;
@@ -34,8 +34,9 @@ const PendingExamsList = () => {
     try {
       // Verify user is admin before fetching
       if (currentUser?.role !== 'admin') {
-        toast.error("Only admin users can access this feature");
+        toast.error("Only admin users can access pending exams");
         setIsLoading(false);
+        setPendingExams([]);
         return;
       }
 
@@ -56,7 +57,12 @@ const PendingExamsList = () => {
   };
 
   useEffect(() => {
-    fetchPendingExams();
+    if (currentUser?.role === 'admin') {
+      fetchPendingExams();
+    } else {
+      setIsLoading(false);
+      setPendingExams([]);
+    }
   }, [currentUser]);
 
   const approveExam = async (pendingExam: PendingExam) => {
@@ -123,6 +129,19 @@ const PendingExamsList = () => {
       toast.error(`Failed to reject exam: ${error.message}`);
     }
   };
+
+  // If user is not admin, show access denied
+  if (currentUser?.role !== 'admin') {
+    return (
+      <Card>
+        <CardContent className="py-10">
+          <div className="text-center text-muted-foreground">
+            You don't have permission to view pending exams.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">

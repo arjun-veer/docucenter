@@ -8,9 +8,11 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { ExamCategory } from "@/lib/types";
+import { useAuth } from "@/lib/stores/auth-store";
 
 export default function ManualExamForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     category: "Engineering" as ExamCategory,
@@ -19,6 +21,7 @@ export default function ManualExamForm() {
     registrationEndDate: "",
     examDate: "",
     resultDate: "",
+    answerKeyDate: "",
     websiteUrl: "",
     eligibility: "",
     applicationFee: ""
@@ -35,6 +38,12 @@ export default function ManualExamForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if user is admin
+    if (currentUser?.role !== "admin") {
+      toast.error("Only admin users can add exams");
+      return;
+    }
     
     // Basic validation
     if (!formData.name || !formData.description || !formData.registrationStartDate || 
@@ -56,6 +65,7 @@ export default function ManualExamForm() {
           registration_end_date: new Date(formData.registrationEndDate).toISOString(),
           exam_date: formData.examDate ? new Date(formData.examDate).toISOString() : null,
           result_date: formData.resultDate ? new Date(formData.resultDate).toISOString() : null,
+          answer_key_date: formData.answerKeyDate ? new Date(formData.answerKeyDate).toISOString() : null,
           website_url: formData.websiteUrl,
           eligibility: formData.eligibility || null,
           application_fee: formData.applicationFee || null,
@@ -65,6 +75,7 @@ export default function ManualExamForm() {
       if (error) throw error;
       
       toast.success("Exam added successfully");
+      console.log("Exam added successfully to the database");
       
       // Reset form
       setFormData({
@@ -75,6 +86,7 @@ export default function ManualExamForm() {
         registrationEndDate: "",
         examDate: "",
         resultDate: "",
+        answerKeyDate: "",
         websiteUrl: "",
         eligibility: "",
         applicationFee: ""
@@ -166,7 +178,7 @@ export default function ManualExamForm() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Exam Date</label>
               <Input 
@@ -183,6 +195,16 @@ export default function ManualExamForm() {
                 type="date"
                 name="resultDate"
                 value={formData.resultDate}
+                onChange={handleChange}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Answer Key Date</label>
+              <Input 
+                type="date"
+                name="answerKeyDate"
+                value={formData.answerKeyDate}
                 onChange={handleChange}
               />
             </div>

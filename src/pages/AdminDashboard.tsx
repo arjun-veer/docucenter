@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth, useSettings } from "@/lib/store";
+import { useAuth } from "@/lib/stores/auth-store";
+import { useSettings } from "@/lib/store";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,7 +13,7 @@ import { checkSupabaseConnection } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Crown, Database, ShieldAlert } from "lucide-react";
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentUser } = useAuth();
@@ -20,33 +21,43 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("search");
   const [dbConnected, setDbConnected] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
-    if (!isAuthenticated) {
-      toast.error("Please sign in to access the admin dashboard");
-      navigate("/auth");
-      return;
-    }
+    const checkAuth = async () => {
+      setIsLoading(true);
+      
+      if (!isAuthenticated) {
+        toast.error("Please sign in to access the admin dashboard");
+        navigate("/auth");
+        return;
+      }
 
-    if (currentUser?.role !== "admin") {
-      toast.error("You don't have admin privileges to access this page");
-      navigate("/dashboard");
-      return;
-    }
+      // Check if user has admin role
+      if (currentUser?.role !== "admin") {
+        toast.error("You don't have admin privileges to access this page");
+        navigate("/dashboard");
+        return;
+      }
 
-    // Check database connection
-    const checkConnection = async () => {
+      console.log("Admin authentication verified:", currentUser);
+
+      // Check database connection
       const { connected, error } = await checkSupabaseConnection();
       setDbConnected(connected);
       
       if (!connected) {
         console.error("Database connection error:", error);
         toast.error("Could not connect to the database. Some features may not work.");
+      } else {
+        console.log("Database connection established");
       }
+      
+      setIsLoading(false);
     };
     
-    checkConnection();
+    checkAuth();
   }, [isAuthenticated, currentUser, navigate]);
 
   const handleTabChange = (value: string) => {
@@ -54,7 +65,7 @@ const AdminDashboard = () => {
   };
 
   // Show loading until we've checked authentication
-  if (dbConnected === null) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
@@ -78,7 +89,7 @@ const AdminDashboard = () => {
         <main className="flex-1 container mx-auto px-4 py-12">
           <Card className="border-destructive">
             <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
-              <AlertCircle className="h-12 w-12 text-destructive" />
+              <ShieldAlert className="h-12 w-12 text-destructive" />
               <h2 className="text-xl font-bold">Access Denied</h2>
               <p className="text-muted-foreground text-center">
                 You don't have admin privileges to access this page.
@@ -100,29 +111,38 @@ const AdminDashboard = () => {
       
       <main className="flex-1 container mx-auto px-4 py-12">
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage exams and application content
-            </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+              <p className="text-muted-foreground mt-1">
+                Manage exams and application content
+              </p>
+            </div>
+            <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-md">
+              <Crown className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Admin Account</span>
+            </div>
           </div>
           
           {dbConnected === false && (
             <Card className="bg-destructive/10 border-destructive mb-6">
               <CardContent className="py-4">
-                <div className="flex flex-col gap-2">
-                  <p className="font-medium text-destructive">Database connection error</p>
-                  <p className="text-sm text-muted-foreground">
-                    Could not connect to the database. Some features may not work properly.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-2 self-start"
-                    onClick={() => window.location.reload()}
-                  >
-                    Retry Connection
-                  </Button>
+                <div className="flex items-start gap-3">
+                  <Database className="h-5 w-5 text-destructive mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-destructive">Database connection error</p>
+                    <p className="text-sm text-muted-foreground">
+                      Could not connect to the database. Some features may not work properly.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => window.location.reload()}
+                    >
+                      Retry Connection
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
