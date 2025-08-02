@@ -77,10 +77,12 @@ export const AuthForm = ({ defaultMode = 'signin' }: AuthFormProps) => {
         navigate('/dashboard');
       } else {
         // Sign up with Supabase
+        const redirectUrl = `${window.location.origin}/`;
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            emailRedirectTo: redirectUrl,
             data: {
               name: name,
               role: 'user'
