@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { UserRole } from '../types';
-import { supabase } from '../supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 // Auth store for user authentication state
 type AuthState = {

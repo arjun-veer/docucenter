@@ -5,7 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { useAuth } from '@/lib/store';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const { isAuthenticated, initializeFromSupabase } = useAuth();
