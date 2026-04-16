@@ -231,7 +231,7 @@ export default function AdminJobsPage() {
                         {job.title}
                       </span>
                       {job.is_featured && (
-                        <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 shrink-0" />
+                        <Star className="h-3.5 w-3.5 text-foreground fill-foreground shrink-0" />
                       )}
                     </div>
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

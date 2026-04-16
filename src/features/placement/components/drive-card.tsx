@@ -131,7 +131,7 @@ export function DriveCard({ drive }: DriveCardProps) {
         )}
 
         {isDeadlineSoon && !isDeadlinePassed && (
-          <p className="text-xs text-orange-600 font-medium">
+          <p className="text-xs text-muted-foreground font-medium">
             Registration closing soon
           </p>
         )}

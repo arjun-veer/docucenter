@@ -137,7 +137,7 @@ export function JobCard({ job }: JobCardProps) {
         )}
 
         {isDeadlineSoon && !isExpired && (
-          <p className="text-xs text-orange-600 font-medium">
+          <p className="text-xs text-muted-foreground font-medium">
             Deadline approaching
           </p>
         )}

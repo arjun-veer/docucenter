@@ -346,10 +346,10 @@ export default function PlacementDetailPage({ params }: DetailPageProps) {
 
       {/* Application status banner */}
       {application && (
-        <Card className="mb-6 border-blue-300 bg-blue-50 dark:bg-blue-950/20">
+        <Card className="mb-6 border-border bg-muted">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <CheckCircle2 className="h-5 w-5 text-foreground mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-medium">
                   You have applied to this drive
@@ -388,10 +388,10 @@ export default function PlacementDetailPage({ params }: DetailPageProps) {
 
       {/* Success banner */}
       {submitSuccess && !application && (
-        <Card className="mb-6 border-green-300 bg-green-50 dark:bg-green-950/20">
+        <Card className="mb-6 border-border bg-muted">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+              <CheckCircle2 className="h-5 w-5 text-foreground shrink-0" />
               <p className="text-sm font-medium">
                 Application submitted successfully!
               </p>

@@ -330,7 +330,7 @@ export default function AdminContentPage() {
                             href={`/blogs/${comment.blogs.slug}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                            className="text-xs text-foreground hover:underline underline-offset-2 flex items-center gap-1"
                           >
                             <FileText className="h-3 w-3" />
                             {comment.blogs.title}

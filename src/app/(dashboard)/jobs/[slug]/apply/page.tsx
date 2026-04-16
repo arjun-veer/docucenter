@@ -245,7 +245,7 @@ export default function ApplyPage({ params }: ApplyPageProps) {
     return (
       <div className="max-w-2xl mx-auto text-center py-12">
         <div className="flex justify-center mb-4">
-          <CheckCircle2 className="h-16 w-16 text-green-600" />
+          <CheckCircle2 className="h-16 w-16 text-muted-foreground" />
         </div>
         <h1 className="text-2xl font-bold mb-2">Application Submitted</h1>
         <p className="text-muted-foreground mb-6">
@@ -321,7 +321,7 @@ export default function ApplyPage({ params }: ApplyPageProps) {
 
       {/* Already applied */}
       {alreadyApplied && (
-        <Card className="mb-6 border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20">
+        <Card className="mb-6 border-border bg-muted">
           <CardContent className="pt-6">
             <p className="text-sm font-medium">
               You have already applied to this job.

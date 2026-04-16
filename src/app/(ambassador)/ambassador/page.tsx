@@ -175,25 +175,21 @@ export default function AmbassadorDashboardPage() {
           label: "Total Drives",
           value: stats.totalDrives,
           icon: Calendar,
-          color: "text-blue-600",
         },
         {
           label: "Active Drives",
           value: stats.activeDrives,
           icon: TrendingUp,
-          color: "text-green-600",
         },
         {
           label: "Total Jobs",
           value: stats.totalJobs,
           icon: Briefcase,
-          color: "text-purple-600",
         },
         {
           label: "Total Applications",
           value: stats.totalApplications,
           icon: Users,
-          color: "text-orange-600",
         },
       ]
     : [];
@@ -242,7 +238,7 @@ export default function AmbassadorDashboardPage() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">
                       {card.label}
                     </CardTitle>
-                    <Icon className={`h-5 w-5 ${card.color}`} />
+                    <Icon className="h-5 w-5 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">{card.value}</div>

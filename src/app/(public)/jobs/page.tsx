@@ -107,7 +107,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
       {featuredJobs.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
-            <Star className="h-5 w-5 text-yellow-500" />
+            <Star className="h-5 w-5 text-foreground" />
             <h2 className="text-lg font-semibold">Featured Jobs</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -75,7 +75,7 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
             className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
           >
             {copied ? (
-              <Check className="h-4 w-4 text-green-600" />
+              <Check className="h-4 w-4 text-muted-foreground" />
             ) : (
               <Copy className="h-4 w-4" />
             )}

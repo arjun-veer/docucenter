@@ -251,7 +251,7 @@ export default function AdminCollegesPage() {
                         href={college.website_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block text-xs text-blue-600 hover:underline truncate max-w-[200px]"
+                        className="block text-xs text-foreground hover:underline underline-offset-2 truncate max-w-[200px]"
                       >
                         {college.website_url}
                       </a>

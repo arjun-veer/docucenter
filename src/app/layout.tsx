@@ -9,6 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://jobexam.vercel.app"),
   title: {
     default: "JobExam - Jobs, Exams & Campus Placements",
     template: "%s | JobExam",

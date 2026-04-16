@@ -195,7 +195,7 @@ export default async function ExamDetailPage({ params }: PageParams) {
               <Badge variant="default">Registration Open</Badge>
             )}
             {exam.isVerified && (
-              <Badge variant="outline" className="text-green-600 border-green-300">
+              <Badge variant="outline" className="text-foreground border-foreground">
                 Verified
               </Badge>
             )}

@@ -382,7 +382,7 @@ export default function AdminExamsPage() {
                     size="sm"
                     onClick={() => handleApprove(exam.id)}
                     disabled={actioningId === exam.id}
-                    className="text-green-600 hover:text-green-700"
+                    className="text-foreground hover:text-foreground"
                   >
                     <Check className="h-4 w-4 mr-1" />
                     Approve

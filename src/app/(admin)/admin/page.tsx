@@ -162,37 +162,31 @@ export default function AdminDashboardPage() {
           label: "Total Users",
           value: stats.totalUsers,
           icon: Users,
-          color: "text-blue-600",
         },
         {
           label: "Total Exams",
           value: stats.totalExams,
           icon: BookOpen,
-          color: "text-green-600",
         },
         {
           label: "Total Jobs",
           value: stats.totalJobs,
           icon: Briefcase,
-          color: "text-purple-600",
         },
         {
           label: "Total Blogs",
           value: stats.totalBlogs,
           icon: FileText,
-          color: "text-orange-600",
         },
         {
           label: "Active Agents",
           value: stats.activeAgents,
           icon: Bot,
-          color: "text-cyan-600",
         },
         {
           label: "Pending Exams",
           value: stats.pendingExams,
           icon: Clock,
-          color: "text-red-600",
         },
       ]
     : [];
@@ -233,7 +227,7 @@ export default function AdminDashboardPage() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">
                       {card.label}
                     </CardTitle>
-                    <Icon className={`h-5 w-5 ${card.color}`} />
+                    <Icon className="h-5 w-5 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">{card.value}</div>
