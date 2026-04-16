@@ -146,6 +146,10 @@ export default function AdminAgentsPage() {
         source_type: form.source_type,
         source_config: parsedConfig,
         schedule: form.schedule.trim() || null,
+        status: "active",
+        last_run_at: null,
+        last_run_result: null,
+        exams_found: 0,
         created_by: currentUser?.id ?? null,
       });
       if (error) throw error;
