@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(rm -rf supabase_backup)",
+      "Bash(cp -r C:/Users/DELL-PC/Desktop/jobexam-temp/* .)",
+      "Bash(cp C:/Users/DELL-PC/Desktop/jobexam-temp/.eslintrc.json .)",
+      "Bash(cp C:/Users/DELL-PC/Desktop/jobexam-temp/.gitignore .)",
+      "Bash(cp -r C:/Users/DELL-PC/Desktop/jobexam-temp/.next .)",
+      "Bash(cp C:/Users/DELL-PC/Desktop/jobexam-temp/package.json .)",
+      "Bash(cp C:/Users/DELL-PC/Desktop/jobexam-temp/package-lock.json .)",
+      "Bash(cp C:/Users/DELL-PC/Desktop/jobexam-temp/postcss.config.mjs .)",
+      "Bash(cp C:/Users/DELL-PC/Desktop/jobexam-temp/tsconfig.json .)",
+      "Bash(cp C:/Users/DELL-PC/Desktop/jobexam-temp/README.md .)",
+      "Bash(npx tsc:*)",
+      "Bash(mkdir -p \"C:/Users/DELL-PC/Desktop/docucenter/src/app/\\(public\\)/jobs/[slug]\")",
+      "Bash(mkdir -p \"C:/Users/DELL-PC/Desktop/docucenter/src/app/\\(dashboard\\)/jobs/[slug]/apply\")"
+    ]
+  }
+}
