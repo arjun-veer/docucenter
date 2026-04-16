@@ -14,7 +14,8 @@
       "Bash(cp C:/Users/DELL-PC/Desktop/jobexam-temp/README.md .)",
       "Bash(npx tsc:*)",
       "Bash(mkdir -p \"C:/Users/DELL-PC/Desktop/docucenter/src/app/\\(public\\)/jobs/[slug]\")",
-      "Bash(mkdir -p \"C:/Users/DELL-PC/Desktop/docucenter/src/app/\\(dashboard\\)/jobs/[slug]/apply\")"
+      "Bash(mkdir -p \"C:/Users/DELL-PC/Desktop/docucenter/src/app/\\(dashboard\\)/jobs/[slug]/apply\")",
+      "Bash(npx next:*)"
     ]
   }
 }
